@@ -20,6 +20,7 @@ const NAV = [
     items: [
       { id: 'styling', doc: 'styling', example: 'tailwind' },
       { id: 'deployment', doc: 'deployment' },
+      { id: 'llms', doc: 'llms' },
       { id: 'credits', doc: 'credits' },
     ],
   },

@@ -62,7 +62,18 @@ npm run check
 
 - **Styling** (Lumen is style-agnostic; plain CSS, `@scope`, Tailwind): [en](docs/en/styling.md) · [es](docs/es/styling.md) — runnable [Tailwind example](examples/tailwind/).
 - **Deployment & loading** (HTTP/2, import maps, `modulepreload` — no bundler needed): [en](docs/en/deployment.md) · [es](docs/es/deployment.md).
+- **For AI agents** (llms.txt, AGENTS.md): [en](docs/en/llms.md) · [es](docs/es/llms.md).
 - **Credits & lineage** (homage to Backbone & Marionette): [en](docs/en/credits.md) · [es](docs/es/credits.md).
+
+## For AI agents · Para agentes de IA
+
+Machine-readable docs so an assistant (Claude, Codex, Cursor…) writes idiomatic Lumen:
+
+- [`llms.txt`](https://dragones-tech.github.io/lumen/llms.txt) — index of all docs ([llmstxt.org](https://llmstxt.org) convention).
+- [`llms-full.txt`](https://dragones-tech.github.io/lumen/llms-full.txt) — every page in one file; paste it into your assistant.
+- [`AGENTS.md`](AGENTS.md) — project conventions for coding agents (and `CLAUDE.md` for Claude Code).
+
+Regenerate the `llms.*` files after editing docs with `npm run llms`.
 
 ## Credits · Créditos
 

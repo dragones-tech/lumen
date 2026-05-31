@@ -1,0 +1,1404 @@
+# Lumen — full documentation
+
+> A transparent, no-magic, no-build vanilla-JS OOP UI framework. What you write is what runs.
+
+
+
+---
+
+<!-- README.md -->
+
+# Lumen
+
+> A transparent, no-magic, no-build vanilla-JS OOP UI framework. **What you write is what runs.**
+>
+> Un framework de UI en JS vanilla, OOP, transparente, sin magia y sin build. **Lo que escribes es lo que corre.**
+
+**📖 Live docs & examples · Documentación y ejemplos en vivo:** https://dragones-tech.github.io/lumen/site/
+
+## Principles · Principios
+
+- **No build.** Native ES modules. The only thing you need is a static file server (ES module imports are blocked on `file://`). Your `.js` reaches the browser untouched.
+- **No magic.** No global side effects on import, no hidden proxies, no compiler rewriting your code. Explicit OOP with a lifecycle you can read.
+- **No Web Components.** Plain classes (not `extends HTMLElement`), so you keep full control of `animate`/`unmount`. A Custom Element adapter is an opt-in escape hatch.
+- **Separate HTML.** Markup lives in native `<template>` elements — real HTML, full editor autocomplete.
+- **Style-agnostic.** Ships zero CSS. Bring plain CSS, native `@scope`, Tailwind — whatever you like.
+- **Typed without a build.** Plain `.js` + JSDoc types, checked with `tsc --noEmit`.
+
+## Run the examples · Correr los ejemplos
+
+```bash
+# from the repo root — any static server works
+python3 -m http.server 8000
+# then open http://localhost:8000/examples/event-emitter/
+```
+
+## Docs site · Sitio de docs
+
+A bilingual (EN/ES) documentation site **built with Lumen itself** — sidebar + router +
+each page's live example embedded. Un sitio de documentación bilingüe **hecho con Lumen**.
+
+```bash
+python3 -m http.server 8000
+# open http://localhost:8000/site/
+```
+
+## Type-check · Verificar tipos
+
+```bash
+npm install   # dev-only: TypeScript, for checking JSDoc types (never runs in the browser)
+npm run check
+```
+
+## Modules · Módulos
+
+| Module | Status | Docs |
+|---|---|---|
+| `event-emitter` | ✅ done | [en](docs/en/event-emitter.md) · [es](docs/es/event-emitter.md) |
+| `dom` | ✅ done | [en](docs/en/dom.md) · [es](docs/es/dom.md) |
+| `animate` | ✅ done | [en](docs/en/animate.md) · [es](docs/es/animate.md) |
+| `view` | ✅ done | [en](docs/en/view.md) · [es](docs/es/view.md) — abstract base class you extend |
+| `model` | ✅ done | [en](docs/en/model.md) · [es](docs/es/model.md) |
+| `collection` | ✅ done | [en](docs/en/collection.md) · [es](docs/es/collection.md) |
+| `collection-view` | ✅ done | [en](docs/en/collection-view.md) · [es](docs/es/collection-view.md) |
+| `region` | ✅ done | [en](docs/en/region.md) · [es](docs/es/region.md) |
+| `router` | ✅ done | [en](docs/en/router.md) · [es](docs/es/router.md) |
+| `http` | ✅ done | [en](docs/en/http.md) · [es](docs/es/http.md) — `fetch` wrapper |
+| `i18n` | ✅ done | [en](docs/en/i18n.md) · [es](docs/es/i18n.md) — translations |
+| `validate` | ✅ done | [en](docs/en/validate.md) · [es](docs/es/validate.md) — model + UI validation |
+| `element` | ✅ done | [en](docs/en/element.md) · [es](docs/es/element.md) — use a View as a Custom Element (`defineElement`) |
+
+## Guides · Guías
+
+- **Styling** (Lumen is style-agnostic; plain CSS, `@scope`, Tailwind): [en](docs/en/styling.md) · [es](docs/es/styling.md) — runnable [Tailwind example](examples/tailwind/).
+- **Deployment & loading** (HTTP/2, import maps, `modulepreload` — no bundler needed): [en](docs/en/deployment.md) · [es](docs/es/deployment.md).
+- **For AI agents** (llms.txt, AGENTS.md): [en](docs/en/llms.md) · [es](docs/es/llms.md).
+- **Credits & lineage** (homage to Backbone & Marionette): [en](docs/en/credits.md) · [es](docs/es/credits.md).
+
+## For AI agents · Para agentes de IA
+
+Machine-readable docs so an assistant (Claude, Codex, Cursor…) writes idiomatic Lumen:
+
+- [`llms.txt`](https://dragones-tech.github.io/lumen/llms.txt) — index of all docs ([llmstxt.org](https://llmstxt.org) convention).
+- [`llms-full.txt`](https://dragones-tech.github.io/lumen/llms-full.txt) — every page in one file; paste it into your assistant.
+- [`AGENTS.md`](AGENTS.md) — project conventions for coding agents (and `CLAUDE.md` for Claude Code).
+
+Regenerate the `llms.*` files after editing docs with `npm run llms`.
+
+## Credits · Créditos
+
+Lumen is a respectful, modernized homage to **[Backbone.js](https://backbonejs.org/)**
+(Model, Collection, events-first) and **[Marionette.js](https://marionette.js.org/)**
+(View, Region, CollectionView, layouts). The patterns are theirs; the implementation is
+rebuilt on the modern platform — no jQuery, no Underscore, no build. No Backbone/Marionette
+code is used; these are conceptual inspirations. See [credits](docs/en/credits.md).
+
+
+---
+
+<!-- docs/en/event-emitter.md -->
+
+# EventEmitter
+
+A tiny, typed, leak-free event emitter. It is the foundation of messaging in Lumen.
+
+## Philosophy
+
+- **No global singleton.** You create emitters with `new` and pass them around explicitly. Importing the module has *no side effects* — nothing is registered, nothing touches `window`.
+- **Symmetric cleanup.** Every `on()` returns an unsubscribe function. You can also pass an `AbortSignal`, so aborting one controller removes every listener bound to it at once. (This is how `View` will tear listeners down on unmount, without leaks.)
+- **Safe by default.** `off()` on an event that was never registered is a no-op, not a crash.
+
+## API
+
+| Method | Returns | Description |
+|---|---|---|
+| `on(event, handler, { signal? })` | `() => void` | Subscribe. Returns an unsubscribe function. |
+| `once(event, handler, { signal? })` | `() => void` | Subscribe for a single emission, then auto-remove. |
+| `off(event, handler)` | `void` | Remove a specific handler. No-op if absent. |
+| `emit(event, payload)` | `void` | Call every handler synchronously with `payload`. |
+| `clear(event?)` | `void` | Remove all handlers for `event`, or all events if omitted. |
+| `listenerCount(event)` | `number` | How many handlers are registered for `event`. |
+
+## Typing your events
+
+Pass an events map as the generic to get autocomplete and payload checking:
+
+```js
+/** @typedef {{ 'todo:add': { text: string }, 'todo:clear': void }} TodoEvents */
+
+/** @type {EventEmitter<TodoEvents>} */
+const bus = new EventEmitter();
+
+bus.on('todo:add', (p) => console.log(p.text)); // p is { text: string }
+bus.emit('todo:add', { text: 'milk' });          // payload checked
+```
+
+For events with no data, type the payload as `void` and pass `undefined`.
+
+## Example
+
+```js
+import { EventEmitter } from 'lumen/event-emitter';
+
+const bus = new EventEmitter();
+
+// Subscribe; keep the unsubscribe handle.
+const off = bus.on('ping', (n) => console.log('ping', n));
+bus.emit('ping', 1); // logs: ping 1
+off();
+bus.emit('ping', 2); // nothing — already unsubscribed
+
+// Group cleanup with an AbortController.
+const ac = new AbortController();
+bus.on('tick', () => console.log('tick'), { signal: ac.signal });
+bus.on('tock', () => console.log('tock'), { signal: ac.signal });
+ac.abort(); // removes BOTH listeners at once
+```
+
+## Design notes
+
+- Handlers are stored in a `Map<string, Set<Function>>`. The `Set` dedupes the same handler reference and makes `off()` O(1).
+- `emit()` iterates over a **copy** of the handler set, so a handler may call `on()`/`off()` during emission without disturbing the current pass.
+- This replaces the old framework's `eventing` package, fixing two bugs: the global frozen singleton (now instantiable) and `off()` throwing when the event was never registered (now guarded).
+
+
+---
+
+<!-- docs/en/dom.md -->
+
+# dom
+
+DOM helpers — the bridge between your separate HTML (`<template>` elements) and your component classes.
+
+## Philosophy
+
+- **No magic.** `clone` is a convenient deep-clone of a `<template>`, `refs` is one `querySelectorAll` collected into an object, `$`/`$$` are typed wrappers. Importing the module has **no side effects** — nothing touches `window`, nothing observes the document. (The old framework installed a global `window.createElement` and a document-wide `MutationObserver` on import; Lumen does neither.)
+- **The pattern:** write markup once in a `<template>` → `clone()` a fresh node → `refs()` the elements you'll update. A component then touches only what changed, instead of re-rendering its whole subtree.
+
+## API
+
+| Function | Returns | Description |
+|---|---|---|
+| `$(selector, root?)` | `Element \| null` | `querySelector`, typed and scoped (default root `document`). |
+| `$$(selector, root?)` | `Element[]` | `querySelectorAll` as a real array, not a live NodeList. |
+| `clone(template, root?)` | `HTMLElement` | Deep-clone a `<template>`'s single root element. Accepts a `<template>` or a selector. |
+| `refs(root)` | `Record<string, HTMLElement>` | Collect every `[data-ref]` descendant into a keyed object. |
+
+## Conventions
+
+- **One root per template.** `clone()` returns the template's first element child. Wrap each component's markup in a single root element.
+- **`data-ref` for references.** `<button data-ref="save">` → `refs.save`. The root element is included if it has a `data-ref`. `data-ref` is for a component's *own* markup — child components manage their own.
+
+## Example
+
+```html
+<template id="card">
+  <article class="card">
+    <h2 data-ref="title"></h2>
+    <button data-ref="save">Save</button>
+  </article>
+</template>
+```
+
+```js
+import { clone, refs } from 'lumen/dom';
+
+const el = clone('#card');          // fresh detached <article>
+const ui = refs(el);                // { title, save }
+
+ui.title.textContent = 'Hello';
+ui.save.onclick = () => console.log('saved');
+
+document.body.appendChild(el);
+```
+
+Typing the refs map (optional) gives you autocomplete:
+
+```js
+/** @type {{ title: HTMLElement, save: HTMLButtonElement }} */
+const ui = refs(el);
+```
+
+## Design notes
+
+- `$$` spreads the NodeList into an array so you can `map`/`filter` directly and so it is not live.
+- `clone` throws a clear error if the template is missing or empty — failures are loud, not silent.
+- `clone` deliberately returns a single element (not a fragment): a component's root is one node, which makes `mount`/`unmount` and animations straightforward.
+- No `el()`/hyperscript helper is included by default — markup lives in `<template>`. One can be added later if a use case needs purely programmatic nodes.
+
+
+---
+
+<!-- docs/en/animate.md -->
+
+# animate
+
+Promise-based animation helpers built on the native Web Animations API. These are the primitives a `View` uses to coordinate enter/leave transitions.
+
+## Philosophy
+
+- **Promises, not callbacks.** Every helper returns `Promise<void>` that resolves when the animation finishes. This is what makes `animateOut` possible: a `View` can `await view.animateOut()` *before* removing the node, so the leave animation always plays fully.
+- **No side effects on import.** `prefers-reduced-motion` is checked lazily, per call.
+- **Accessible by default.** When the user prefers reduced motion (or `duration` is `0`), helpers resolve immediately without animating.
+- **Never rejects.** A cancelled animation resolves rather than throwing, so an interrupted transition can't crash an unmount.
+
+## API
+
+| Function | Description |
+|---|---|
+| `play(el, keyframes, options?)` | Run any keyframes; resolve when done. The primitive below the rest. |
+| `fadeIn(el, options?)` | Opacity 0 → 1. |
+| `fadeOut(el, options?)` | Opacity 1 → 0. |
+| `slideIn(el, options?)` | Rise into place while fading in. |
+| `slideOut(el, options?)` | Sink slightly while fading out. |
+
+### `AnimateOptions`
+
+| Option | Default | Description |
+|---|---|---|
+| `duration` | `200` | Milliseconds. `0` skips the animation. |
+| `easing` | `'ease'` | A CSS easing keyword or `cubic-bezier(...)`. |
+| `delay` | `0` | Milliseconds before starting. |
+
+## Example
+
+```js
+import { fadeIn, slideOut } from 'lumen/animate';
+
+// Enter: append, then play the in animation.
+document.body.appendChild(el);
+await fadeIn(el, { duration: 250 });
+
+// Leave: play the out animation, THEN remove.
+await slideOut(el, { duration: 200 });
+el.remove();
+```
+
+Inside a `View` (module 4) this becomes:
+
+```js
+class Toast extends View {
+  animateIn()  { return slideIn(this.el); }
+  animateOut() { return slideOut(this.el); } // awaited before the node leaves the DOM
+}
+```
+
+## Custom keyframes
+
+`play` accepts any Web Animations keyframes, so you are never boxed in:
+
+```js
+import { play } from 'lumen/animate';
+
+await play(el, [
+  { transform: 'scale(0.8)', opacity: 0 },
+  { transform: 'scale(1)',   opacity: 1 },
+], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)' });
+```
+
+## Design notes
+
+- Helpers don't use `fill`/`commitStyles`: each animation's end state equals the element's natural resting style (opacity 1, no transform), so nothing needs to be pinned and no inline styles are left behind.
+- `play` resolves on both fulfillment and rejection of `Animation.finished`, collapsing "finished" and "cancelled" into one safe outcome.
+
+
+---
+
+<!-- docs/en/view.md -->
+
+# View
+
+The abstract base class for everything you see. **A view is a class — you extend `View`.**
+It wraps the `dom` primitives (`clone` + `refs`), an explicit lifecycle, and leak-free
+cleanup, so you never wire that plumbing by hand.
+
+## Philosophy
+
+- **OOP, not functions.** A view is a class with behavior and a lifecycle. The stateless helpers (`clone`, `refs`, `fadeIn`…) are the primitives it uses internally.
+- **A plain class, not a Custom Element.** You keep full control of the lifecycle, so `animateOut()` finishes *before* the node leaves the DOM. (A Custom Element's `disconnectedCallback` only fires *after* removal — too late to animate out.)
+- **Surgical updates, no re-render.** You change nodes in `this.ui` directly. Focus, scroll and input state are never lost. (The old framework re-ran `innerHTML = ''` on every change; Lumen never does.)
+- **Symmetric, automatic cleanup.** Listeners bound with `this.signal` (or `this.listen(...)`) are removed on `unmount()` — no leaks, and none of the old framework's "listener re-subscribed on every update" bug.
+
+## Lifecycle, in order
+
+1. `new View(props)` — cheap; nothing is built or touched yet.
+2. `build()` (called by `mount`) — `render()` makes `el`, `refs()` fills `ui`, then `onCreate()`. Runs once.
+3. `mount(parent)` — inserts `el`, sets `mounted`, calls `onMount()`, awaits `animateIn()`.
+4. `unmount()` — awaits `animateOut()`, unmounts children, calls `onUnmount()`, aborts `signal`, removes `el`.
+
+Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onCreate()`.
+
+## API
+
+| Member | Description |
+|---|---|
+| `static template` | A `<template>` selector (e.g. `'#card'`) or element used by the default `render()`. |
+| `props` | The data/handlers passed to the constructor. |
+| `el` | The root element (`null` until `build()`/`mount()`). |
+| `ui` | The `[data-ref]` elements, keyed by name. |
+| `events` | A per-view `EventEmitter` for talking to a parent. |
+| `signal` | An `AbortSignal` tied to the mounted lifetime — bind listeners with it for auto-cleanup. |
+| `mounted` | Whether the view is in the DOM. |
+| `render()` | Build the root node. Default clones `static template`; override to build differently. |
+| `build()` | Create `el` + `ui` (idempotent). |
+| `mount(parent)` | Insert and run the mount lifecycle. Returns `Promise<this>`. |
+| `unmount()` | Animate out, tear down children, clean up, remove. Returns `Promise<void>`. |
+| `addChild(child, parent?)` | Mount a child (default parent: `this.el`) and track it for cascade unmount. |
+| `removeChild(child)` | Untrack and unmount a child. |
+| `listen(target, type, handler, options?)` | `addEventListener` bound to `signal` (auto-removed on unmount). |
+| `onCreate / onMount / onUnmount` | Lifecycle hooks (override). |
+| `animateIn / animateOut` | Transition hooks; return a Promise (override). |
+
+## Example
+
+```html
+<template id="note">
+  <div class="note">
+    <span data-ref="text"></span>
+    <button data-ref="remove">×</button>
+  </div>
+</template>
+```
+
+```js
+import { View } from 'lumen/view';
+import { slideIn, slideOut } from 'lumen/animate';
+
+class Note extends View {
+  static template = '#note';
+
+  onMount() {
+    this.ui.text.textContent = this.props.text;
+    // Bound to signal → removed automatically on unmount.
+    this.listen(this.ui.remove, 'click', () => this.props.onRemove(this));
+  }
+  onUnmount() { /* timers/subscriptions are cleaned automatically via signal */ }
+
+  animateIn()  { return slideIn(this.el); }
+  animateOut() { return slideOut(this.el); } // plays fully BEFORE removal
+}
+
+await new Note({ text: 'Hello', onRemove: (n) => n.unmount() }).mount(document.body);
+```
+
+## Typing your refs
+
+Extend with a generic so `this.ui` is typed:
+
+```js
+/** @extends {View<{ text: HTMLElement, remove: HTMLButtonElement }>} */
+class Note extends View {
+  static template = '#note';
+  onMount() {
+    this.ui.text;   // HTMLElement
+    this.ui.remove; // HTMLButtonElement
+  }
+}
+```
+
+## Event handler styles
+
+Lumen does not force a handler style — any standard approach works. The framework's only
+job is to keep `this` correct and clean up on unmount (that's `listen` + `signal`). Pick
+whichever your team prefers. Three common ones, with trade-offs:
+
+**1. Auto-bound arrow field** — the handler is a class field; reference it directly.
+```js
+onMount() { this.listen(this.ui.name, 'input', this.onNameInput); }
+onNameInput = () => this.props.model.set('name', this.ui.name.value);
+```
+No inline arrow, no `bind`, `this` always correct. Lives per-instance (not on the prototype), so it isn't overridable via `super`.
+
+**2. Method bound once** — the `@boundMethod` idea without a decorator; bind in `onCreate`.
+```js
+onCreate() { this.onNameInput = this.onNameInput.bind(this); }
+onMount()  { this.listen(this.ui.name, 'input', this.onNameInput); }
+onNameInput() { this.props.model.set('name', this.ui.name.value); }
+```
+The method stays on the prototype (shared, overridable), at the cost of one bind line.
+
+**3. Method + wiring arrow** — reference the method through a thin arrow.
+```js
+onMount() { this.listen(this.ui.name, 'input', () => this.onNameInput()); }
+onNameInput() { this.props.model.set('name', this.ui.name.value); }
+```
+Method on the prototype; the arrow keeps `this`, at the cost of an inline function at the wiring site.
+
+> Never pass a raw, unbound method reference (`this.listen(el, 'input', this.onNameInput)`) — `this` is lost inside it.
+
+The examples use styles 1 and 3; neither is "the" way.
+
+## Regions (layouts)
+
+Declare `static regions` — a map of region name → the `data-ref` of its slot — and a
+`Region` is created for each as `this.regions.<name>`. They are emptied automatically on
+`unmount()`, so **nested layouts tear down in cascade**.
+
+```html
+<template id="app-layout">
+  <div class="app">
+    <header data-ref="header"></header>
+    <aside  data-ref="sidebar"></aside>
+    <main   data-ref="main"></main>
+  </div>
+</template>
+```
+
+```js
+class AppLayout extends View {
+  static template = '#app-layout';
+  static regions = { header: 'header', sidebar: 'sidebar', main: 'main' };
+  onMount() {
+    this.regions.header.show(new NavBar());
+    this.regions.sidebar.show(new Menu());
+    this.regions.main.show(new Dashboard());   // Dashboard can declare its OWN regions
+  }
+}
+```
+
+A view shown in a region can itself have regions, all the way down. When `AppLayout`
+unmounts, it empties its regions → each shown view unmounts → that view empties *its*
+regions → and so on. You write no teardown code.
+
+> `View` (content) vs `Region` (a slot that swaps which view is shown). A layout is a
+> View whose slots are Regions filled with other Views. See [region](region.md).
+
+## Talking to a parent
+
+Two patterns, both explicit:
+
+- **Props callbacks** (simplest): pass `onRemove` in, call `this.props.onRemove(this)`.
+- **Per-view events**: `this.events.emit('remove', this)`; the parent does
+  `child.events.on('remove', handler, { signal: child.signal })`.
+
+## Design notes
+
+- `build()` runs `render()`/`refs()` *after* the subclass is fully constructed (it is called by `mount`, not the constructor), so overridden `render()` and `onCreate()` can safely use subclass fields — no constructor field-ordering footgun.
+- `unmount()` recreates a fresh `AbortController` at the end, so a view can be unmounted and mounted again; listeners rebind in `onMount()`.
+- Composition is explicit: `addChild` mounts and tracks; `unmount` cascades to children. There is no hidden parent/child registry.
+
+
+---
+
+<!-- docs/en/model.md -->
+
+# Model
+
+Observable data for a single entity (a user, a todo, a setting). It pairs with
+`Collection` (a list of models, module 6).
+
+## Philosophy
+
+- **Explicit state.** Read with `get`, write with `set`. `set` emits events; direct mutation of `model.data.x` does **not** notify — on purpose, so every notification has a visible cause. No proxies, no hidden interception.
+- **Granular, not total.** A change emits `change:<key>`, so a view updates only the node that changed. There is no forced full re-render (the old framework re-rendered the whole view on any change).
+- **No crashes on new keys.** Setting a key that wasn't in the initial data is fine. (The old `AbstractModel` threw a `TypeError` in this case.)
+- **No-op on equal values.** `set` compares with strict `!==` and stays silent when nothing actually changed.
+
+## Events
+
+| Event | Payload | When |
+|---|---|---|
+| `change:<key>` | `{ value, previous, model }` | A specific attribute changed. |
+| `change` | `{ keys, model }` | Once per `set`, listing the changed keys. |
+
+## API
+
+| Method | Description |
+|---|---|
+| `new Model(data)` | Create with initial attributes (copied, not referenced). |
+| `get(key)` | Read an attribute. |
+| `set(key, value)` / `set(patch)` | Write one attribute or merge a partial object. Returns `this`. |
+| `on(event, handler, { signal? })` | Subscribe. Returns an unsubscribe function. |
+| `once(event, handler, { signal? })` | Subscribe for a single emission. |
+| `off(event, handler)` | Unsubscribe. |
+| `validate()` | Validate the attributes against `static rules`. Returns errors keyed by field (`{}` = valid). |
+| `isValid()` | Whether the attributes pass validation. |
+| `toJSON()` | A shallow copy of the attributes. |
+
+## Example: one model, observed surgically
+
+```js
+import { Model } from 'lumen/model';
+
+const profile = new Model({ name: 'Ada', color: '#2563eb' });
+
+// A view subscribes with its signal, so this cleans up on unmount,
+// and updates ONLY the node that changed.
+profile.on('change:name',  ({ value }) => badge.textContent = value, { signal: view.signal });
+profile.on('change:color', ({ value }) => badge.style.color = value, { signal: view.signal });
+
+profile.set('name', 'Grace');   // fires change:name + change
+profile.set('name', 'Grace');   // no-op — value unchanged, silent
+profile.set({ color: '#dc2626', role: 'admin' }); // new key 'role' is fine
+```
+
+## Using a model inside a View
+
+Subscribe in `onMount` with `this.signal`:
+
+```js
+class Badge extends View {
+  static template = '#badge';
+  onMount() {
+    const { model } = this.props;
+    const paint = () => {
+      this.ui.name.textContent = model.get('name');
+      this.ui.name.style.color = model.get('color');
+    };
+    paint();
+    model.on('change', paint, { signal: this.signal }); // auto-removed on unmount
+  }
+}
+```
+
+## Type your data
+
+```js
+/** @type {Model<{ name: string, color: string }>} */
+const profile = new Model({ name: 'Ada', color: '#2563eb' });
+profile.get('name'); // string
+```
+
+## Validation
+
+A model is the single source of truth for whether its data is valid. Declare `static rules`
+and call `validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
+
+```js
+import { Model, required, email } from 'lumen';
+
+class User extends Model {
+  static rules = { email: [required(), email()] };
+}
+new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
+```
+
+## Design notes
+
+- Notification carries `previous` and `value`, so observers can diff without keeping their own copy.
+- `change` fires once per `set`, even for a multi-key patch, so a "something changed, recompute" listener runs a single time.
+- Built directly on `EventEmitter`; subscriptions accept an `AbortSignal`, which is what makes the View integration leak-free.
+
+
+---
+
+<!-- docs/en/collection.md -->
+
+# Collection
+
+An ordered list of `Model`s with structural events. It pairs with `CollectionView`
+(module 7), which renders one view per model.
+
+## Philosophy
+
+- **Mutations are announced.** `add`, `remove` and `reset` change the list and emit an event.
+- **Queries never mutate.** `find`, `where`, `filter`, `map` and `sort` return results and leave the collection's contents and order untouched. (The old framework's `find`/`where`/`sort` *overwrote* the visible list as a side effect of querying — this fixes that trap.)
+- **Local reactions.** Per-model changes aren't bubbled here; in a `CollectionView` each model gets its own view subscribed to its own model, so reactions stay granular.
+
+## Events
+
+| Event | Payload | When |
+|---|---|---|
+| `add` | `{ model, index, collection }` | A model was appended. |
+| `remove` | `{ model, index, collection }` | A model was removed. |
+| `reset` | `{ models, collection }` | The whole list was replaced. |
+
+## API
+
+| Member | Description |
+|---|---|
+| `new Collection(items?, Model?)` | Wrap plain data with `Model` (a subclass), or pass `Model` instances. |
+| `length` / `at(i)` / `get(id)` | Size, index access, lookup by `id` attribute. |
+| `add(item)` | Append (wrapping data). Emits `add`. Returns the model. |
+| `remove(model)` | Remove. Emits `remove`. No-op if absent. |
+| `reset(items?)` | Replace all. Emits `reset`. |
+| `find(fn)` | First match, or `undefined`. |
+| `where(attrs)` | New array of models matching all attributes. |
+| `filter(fn)` / `map(fn)` / `forEach(fn)` | Standard, non-mutating. |
+| `sort(compare)` | A **sorted copy** — does not reorder the collection. |
+| `on/once/off(event, handler, { signal? })` | Subscribe / unsubscribe. |
+| `toJSON()` | Array of each model's data. |
+| `for…of` | Iterates the models. |
+
+## Example
+
+```js
+import { Collection } from 'lumen/collection';
+import { Model } from 'lumen/model';
+
+class Todo extends Model {}
+
+const todos = new Collection([
+  { id: 1, text: 'a', done: true },
+  { id: 2, text: 'b', done: false },
+], Todo);
+
+todos.on('add',    ({ model }) => console.log('added', model.get('text')));
+todos.on('remove', ({ model }) => console.log('removed', model.get('text')));
+
+todos.add({ id: 3, text: 'c', done: false });
+
+// Queries return results WITHOUT changing the collection's order:
+todos.where({ done: false });                       // [model b, model c]
+todos.sort((a, b) => a.get('text') < b.get('text') ? -1 : 1); // a sorted COPY
+todos.map((m) => m.get('text'));                    // still ['a','b','c'] — unchanged
+```
+
+## Type it
+
+```js
+/** @typedef {{ id: number, text: string, done: boolean }} TodoData */
+/** @type {Collection<TodoData, Todo>} */
+const todos = new Collection([], Todo);
+```
+
+## Design notes
+
+- `sort` returns a copy rather than sorting in place, so a query can never reorder what observers see. To present a different order, render from the returned array (or, later, feed it to a `CollectionView`).
+- Built on `EventEmitter`; subscriptions accept an `AbortSignal`, so a view can subscribe with `this.signal` and clean up on unmount.
+- `add`/`remove` carry the `index`, which `CollectionView` will use to insert or remove a single child view without rebuilding the list.
+
+
+---
+
+<!-- docs/en/collection-view.md -->
+
+# CollectionView
+
+Renders one child `View` per model in a `Collection`, and keeps them in sync through
+**keyed reconciliation**.
+
+> **A `Collection` is best used with a `CollectionView`.** The collection is the data
+> layer — it holds models and announces structural changes. The `CollectionView` is what
+> turns that into UI: it maps each model to a view and reacts to `add`/`remove`/`reset`
+> by mounting or unmounting only the affected child. Using a collection without a
+> `CollectionView` means re-rendering lists by hand; pairing them is the intended path.
+
+## Philosophy
+
+- **Incremental, not rebuilt.** On `add`, one child mounts (with its `animateIn`); on `remove`, one child unmounts (its `animateOut` plays first); siblings are never touched. (The old framework recreated every child on each render — and broke on the second pass.)
+- **Keyed.** A `Map` from model → child view is the index, so the right child is found in O(1) for removal.
+- **Composed from the parts you know.** It is a `View` subclass; children are tracked via `addChild`, so unmounting the list cascades to every child and cleans up.
+
+## Configure with statics
+
+| Static | Required | Description |
+|---|---|---|
+| `childView` | yes | The `View` subclass to instantiate per model. |
+| `template` | no | A `<template>`; children mount into the `container` ref (or the root). |
+| `container` | no | The `data-ref` name of the element children mount into. Default: the root element. |
+| `tag` | no | When there is no `template`, the tag of the auto-created root. Default `'div'`. |
+
+Pass the collection as a prop: `new TodoList({ collection })`. Each child view receives
+`{ model }` plus anything you return from `childProps(model)`.
+
+## Example
+
+```html
+<template id="todo-list">
+  <div>
+    <form data-ref="form"><input data-ref="input" placeholder="New todo…" /></form>
+    <ul data-ref="items"></ul>
+  </div>
+</template>
+<template id="todo-item">
+  <li><label><input type="checkbox" data-ref="check"> <span data-ref="text"></span></label>
+      <button data-ref="remove">×</button></li>
+</template>
+```
+
+```js
+import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumen';
+
+class Todo extends Model {}
+
+class TodoItem extends View {
+  static template = '#todo-item';
+  onMount() {
+    const { model } = this.props;
+    this.ui.text.textContent = model.get('text');
+    this.ui.check.checked = model.get('done');
+    this.listen(this.ui.check, 'change', this.toggle);
+    this.listen(this.ui.remove, 'click', this.remove);
+  }
+  toggle = () => this.props.model.set('done', this.ui.check.checked);
+  remove = () => this.props.onRemove();           // provided by the list's childProps
+  animateIn()  { return slideIn(this.el); }
+  animateOut() { return slideOut(this.el); }
+}
+
+class TodoList extends CollectionView {
+  static template  = '#todo-list';
+  static childView = TodoItem;
+  static container = 'items';                      // children mount into ui.items
+  onMount() {
+    super.onMount();                               // sets up reconciliation
+    this.listen(this.ui.form, 'submit', this.onSubmit);
+  }
+  onSubmit = (e) => {
+    e.preventDefault();
+    const text = this.ui.input.value.trim();
+    if (text) this.collection.add({ text, done: false });
+    this.ui.input.value = '';
+  };
+  childProps(model) {
+    return { onRemove: () => this.collection.remove(model) };
+  }
+}
+
+const todos = new Collection([], Todo);
+new TodoList({ collection: todos }).mount(document.body);
+```
+
+Adding a todo appends a model → the list mounts one new `TodoItem` (sliding in). Removing
+calls `collection.remove` → the list unmounts that one child (sliding out first). Nothing
+else re-renders.
+
+## Design notes
+
+- `CollectionView` overrides `View.render()` to clone `template` or create a `tag` element; everything else (lifecycle, cascade unmount, signal cleanup) is inherited.
+- Subscriptions to the collection use `this.signal`, so they are removed when the list unmounts.
+- `childProps(model)` is the seam for passing per-child callbacks or shared dependencies without coupling the child to the collection.
+- The collection currently appends on `add`, so children append in order. Reordering is a query (`sort` returns a copy) and does not emit, so the rendered order follows insertion; render from a sorted array if you need a different order.
+
+
+---
+
+<!-- docs/en/region.md -->
+
+# Region
+
+Manages a single DOM slot that holds at most one `View` at a time, with an animated swap.
+
+## Philosophy
+
+- **Ordered transitions.** `show(view)` plays the current view's `animateOut()` to completion, unmounts it, then mounts the new view and plays its `animateIn()`. Out, then in — predictable.
+- **What Custom Elements can't do.** Because a `View` is a plain class, the region controls removal timing, so the leave animation always finishes before the node goes. A Custom Element's `disconnectedCallback` fires only *after* removal.
+- **The base for navigation.** Point a region at an "outlet" element and call `show()` as routes change. The router (module 9) is built on this.
+
+## API
+
+| Member | Description |
+|---|---|
+| `new Region(target)` | `target` is an element or a CSS selector for the slot. |
+| `el` | The slot element. |
+| `current` | The view currently shown, or `null`. |
+| `show(view)` | Animated swap. Returns `Promise<view>` (resolves after the entrance). No-op if already current. |
+| `empty()` | Unmount whatever is shown (animating out first). Returns `Promise<void>`. |
+
+## Example
+
+```js
+import { Region, View, fadeIn, fadeOut } from 'lumen';
+
+class Screen extends View {
+  static template = '#screen';
+  onMount()   { this.ui.title.textContent = this.props.title; }
+  onUnmount() { console.log('left', this.props.title); }
+  animateIn()  { return fadeIn(this.el); }
+  animateOut() { return fadeOut(this.el); }
+}
+
+const main = new Region('#outlet');
+await main.show(new Screen({ title: 'Home' }));
+await main.show(new Screen({ title: 'About' })); // Home fades out, then About fades in
+```
+
+## Named regions in a layout
+
+A layout usually has several regions (header, sidebar, main, modal). You don't create them
+by hand — declare them on a `View` with `static regions` and each is created and emptied
+for you, cascading through nested layouts. See [View → Regions (layouts)](view.md). The
+example below is a nested layout built that way.
+
+## Design notes
+
+- `show` awaits `unmount()` (which awaits `animateOut`) before mounting the next view, so transitions never overlap. If you want a crossfade, mount into two stacked regions instead.
+- A region holds exactly one view; for lists use `CollectionView`.
+- `show` returning the view (after `animateIn`) lets callers `await` a completed transition — handy for sequencing navigation.
+
+
+---
+
+<!-- docs/en/router.md -->
+
+# Router
+
+A small client-side router built on native `hashchange`/`popstate` events. It pairs with
+`Region` to swap screens as the URL changes.
+
+## Philosophy
+
+- **Events, not polling.** It listens to the browser's own navigation events. (The old framework polled the URL every 50 ms with `setInterval` — wasteful and laggy.)
+- **No singleton.** Create a router, register routes, `start()`.
+- **Plain handlers.** A route handler is just a function called with the matched params; `navigate` resolves immediately (even in `history` mode, where `pushState` doesn't fire `popstate`) — fixing the old bug where navigation didn't trigger the route.
+
+## API
+
+| Member | Description |
+|---|---|
+| `new Router({ mode?, root? })` | `mode` is `'hash'` (default) or `'history'`; `root` is the base path for history mode. |
+| `add(pattern, handler)` | Register a route. `:name` segments become params. First match wins. |
+| `notFound(handler)` | Handler when nothing matches (receives the path). |
+| `start()` / `stop()` | Begin / end listening. `start()` also resolves the current URL. |
+| `navigate(path)` | Change the URL and resolve the matching route. |
+| `current()` | The current normalized path. |
+
+## Patterns
+
+| Pattern | Matches | Params |
+|---|---|---|
+| `/` | `/` | `{}` |
+| `/about` | `/about` | `{}` |
+| `/users/:id` | `/users/42` | `{ id: '42' }` |
+| `/posts/:cat/:slug` | `/posts/js/raw` | `{ cat: 'js', slug: 'raw' }` |
+
+## Example (with a Region)
+
+```js
+import { Router, Region, View } from 'lumen';
+
+const main = new Region('#outlet');
+
+const router = new Router(); // hash mode
+router
+  .add('/',          () => main.show(new HomeView()))
+  .add('/about',     () => main.show(new AboutView()))
+  .add('/users/:id', ({ id }) => main.show(new UserView({ id })))
+  .notFound(() => main.show(new NotFoundView()))
+  .start();
+
+// later, in code:
+router.navigate('/users/42');
+// or in markup (hash mode): <a href="#/users/42">User 42</a>
+```
+
+Each route resolves to a single `region.show(...)`, so the previous screen animates out
+and the next animates in — navigation gets transitions for free.
+
+## Design notes
+
+- `hash` mode needs no server configuration and is the default. `history` mode gives clean URLs but needs the server to serve your app for unknown paths.
+- `navigate` in `history` mode calls `_resolve()` itself because `pushState` does not emit `popstate`.
+- Handlers receive only params; keep `this` via an arrow or a bound method if a handler is a class method (see [View → event handler styles](view.md)).
+
+
+---
+
+<!-- docs/en/http.md -->
+
+# Http
+
+A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
+`requester`.
+
+## Philosophy
+
+- **Thin over `fetch`.** Sensible defaults — JSON encode/decode and "throw on non-2xx" — and nothing else. No interceptors-by-magic, no hidden retries.
+- **Cancellable, lifecycle-friendly.** Pass an `AbortSignal` (e.g. a view's `this.signal`) and the request is cancelled automatically when the view unmounts.
+- **Errors carry data.** A non-2xx response throws `HttpError` with the status, the `Response`, and the already-parsed body.
+
+## API
+
+| Member | Description |
+|---|---|
+| `new Http({ baseURL?, headers?, signal? })` | Configure a client. |
+| `get(path, options?)` | GET. Returns the parsed body. |
+| `post(path, body?, options?)` | POST (plain objects are JSON-encoded). |
+| `put` / `patch(path, body?, options?)` | PUT / PATCH. |
+| `delete(path, options?)` | DELETE. |
+| `request(method, path, options?)` | The primitive the rest build on. |
+
+### `RequestOptions`
+
+| Option | Description |
+|---|---|
+| `body` | Plain object → JSON; `string`/`FormData` sent as-is. |
+| `headers` | Extra headers for this request. |
+| `signal` | `AbortSignal` to cancel (pass `view.signal`). |
+| `query` | Object of query params appended to the URL. |
+
+### `HttpError`
+
+`status`, `response`, and `body` (parsed). Thrown on any non-2xx.
+
+## Example
+
+```js
+import { Http, HttpError } from 'lumen/http';
+
+const api = new Http({ baseURL: 'https://api.example.com', headers: { Authorization: 'Bearer …' } });
+
+const users = await api.get('/users', { query: { active: true }, signal: this.signal });
+await api.post('/users', { name: 'Ada' });
+
+try {
+  await api.get('/missing');
+} catch (e) {
+  if (e instanceof HttpError) console.log(e.status, e.body);
+}
+```
+
+## With Collection + CollectionView
+
+The natural pattern: fetch JSON, drop it into a `Collection`, let a `CollectionView`
+render it.
+
+```js
+class UserList extends CollectionView {
+  static childView = UserItem;
+  async onMount() {
+    super.onMount();
+    try {
+      const data = await api.get('/users', { signal: this.signal });
+      this.collection.reset(data);            // CollectionView reconciles
+    } catch (e) {
+      if (e.name !== 'AbortError') this.showError(e);
+    }
+  }
+}
+```
+
+Because the request uses `this.signal`, navigating away (which unmounts the view) cancels
+an in-flight fetch — no "setState on unmounted view" class of bug.
+
+## Design notes
+
+- Bodies are parsed by content type: JSON when the response is JSON, text otherwise, `null` for `204`/empty.
+- A cancelled request rejects with an `AbortError` (the platform's behavior) — check `e.name === 'AbortError'` to ignore it.
+- No global instance: create one `Http` per API/base URL and pass it where needed.
+
+
+---
+
+<!-- docs/en/i18n.md -->
+
+# I18n
+
+Minimal internationalization (phase 2). Replaces the old framework's `translate`.
+
+## Philosophy
+
+- **Plain dictionaries.** You hold message trees per locale; `t(key)` reads them. No extraction step, no compilation.
+- **Reactive, lifecycle-friendly.** `setLocale` emits `change`; views subscribe with `this.signal` and re-render their text, cleaning up on unmount.
+- **Graceful fallback.** Missing key → fallback locale → the key itself. Never throws.
+
+## API
+
+| Member | Description |
+|---|---|
+| `new I18n({ locale?, fallback?, messages? })` | `messages` is `{ en: {...}, es: {...} }`. |
+| `t(key, params?)` | Translate. Dotted keys (`'home.title'`) and `{placeholders}`. |
+| `setLocale(locale)` | Switch locale; emits `change` if it changed. |
+| `onChange(handler, { signal? })` | Subscribe to locale changes. Returns unsubscribe. |
+| `locale` / `fallback` / `messages` | The current state. |
+
+## Example
+
+```js
+import { I18n } from 'lumen/i18n';
+
+const i18n = new I18n({
+  locale: 'en',
+  messages: {
+    en: { greeting: 'Hello, {name}', home: { title: 'Home' } },
+    es: { greeting: 'Hola, {name}',  home: { title: 'Inicio' } },
+  },
+});
+
+i18n.t('greeting', { name: 'Ada' }); // "Hello, Ada"
+i18n.setLocale('es');
+i18n.t('home.title');                // "Inicio"
+i18n.t('missing.key');               // "missing.key" (fallback to the key)
+```
+
+## Inside a View
+
+Render text in `onMount`, and re-render on locale change via `this.signal`:
+
+```js
+class Header extends View {
+  static template = '#header';
+  onMount() {
+    this.paint();
+    this.props.i18n.onChange(this.paint, { signal: this.signal }); // auto-removed on unmount
+  }
+  paint = () => {
+    this.ui.title.textContent = this.props.i18n.t('home.title');
+  };
+}
+```
+
+## Design notes
+
+- Built on `EventEmitter`; the `change` subscription accepts an `AbortSignal`, so it integrates with `View` cleanup.
+- No global instance — create one `I18n` and pass it (props) or import a shared one from your app.
+- Interpolation only replaces `{name}` tokens; unknown placeholders are left intact (easy to spot missing params).
+
+
+---
+
+<!-- docs/en/validate.md -->
+
+# Validation
+
+One source of truth: define the rules on the `Model`, call `model.validate()`, and the UI
+renders the returned errors. (Validation is a domain concern — the model knows what valid
+data is — unlike persistence, which lives elsewhere.)
+
+## Philosophy
+
+- **Rules live with the model.** `static rules` on the model; the UI doesn't redefine them.
+- **`validate()` returns; nothing is magic.** It does not block `set` or auto-render — you call it when it makes sense (on submit, on blur, on input) and render the result.
+- **Composable, pure rules.** Each rule is `(value, data) => string | null`. Bring your own.
+
+## Defining rules on a model
+
+```js
+import { Model, required, email, minLength, match } from 'lumen';
+
+class Signup extends Model {
+  static rules = {
+    email:    [required(), email()],
+    password: [required(), minLength(8)],
+    confirm:  [match('password', 'passwords must match')],
+  };
+}
+
+const user = new Signup({ email: 'bad', password: '123', confirm: '' });
+user.validate();  // { email: ['must be a valid email'], password: ['must be at least 8 characters'], confirm: ['passwords must match'] }
+user.isValid();   // false
+```
+
+`validate()` returns errors keyed by field — an empty object means valid. Override
+`validate()` for custom cross-field logic.
+
+## Built-in rules
+
+| Rule | Fails when |
+|---|---|
+| `required(msg?)` | value is empty/null/undefined |
+| `minLength(n, msg?)` / `maxLength(n, msg?)` | string length out of range |
+| `pattern(re, msg?)` | doesn't match the regex |
+| `email(msg?)` | not an email |
+| `min(n, msg?)` / `max(n, msg?)` | number out of range |
+| `match(field, msg?)` | not equal to another field |
+| custom: `(value, data) => msg \| null` | your logic returns a message |
+
+## Rendering errors in a View
+
+Set the form fields into the model, validate, and paint the errors into per-field slots:
+
+```js
+class SignupForm extends View {
+  static template = '#signup';
+  onMount() { this.listen(this.ui.form, 'submit', this.submit); }
+  submit = (e) => {
+    e.preventDefault();
+    this.props.model.set({
+      email: this.ui.email.value,
+      password: this.ui.password.value,
+      confirm: this.ui.confirm.value,
+    });
+    const errors = this.props.model.validate();
+    this.showErrors(errors);
+    if (Object.keys(errors).length === 0) this.props.onValid();
+  };
+  showErrors(errors) {
+    for (const field of ['email', 'password', 'confirm']) {
+      this.ui[field + 'Err'].textContent = errors[field]?.[0] ?? '';
+    }
+  }
+}
+```
+
+The model is the single source of truth; the view only renders what `validate()` returns.
+
+## Using native constraints too (optional)
+
+For instant browser feedback you can still add `required`/`type="email"`/`pattern` to inputs
+and use the platform's Constraint Validation API (`form.checkValidity()`,
+`input.setCustomValidity(msg)`). The model rules remain the authority; native constraints
+are a UX nicety on top.
+
+## Design notes
+
+- `validate.js` imports nothing (pure leaf). `Model` imports `runRules` from it — a clean one-directional dependency (no cycle).
+- Standalone use: `runRules(anyData, rules)` works without a model (e.g. validate raw form values directly).
+
+
+---
+
+<!-- docs/en/element.md -->
+
+# defineElement (Custom Element adapter)
+
+Register a `View` as a Custom Element, so it can be used as `<tag-name>` in plain HTML
+— or consumed inside React/Vue/Angular. This is the **escape hatch** for distributing a
+widget; your class stays a normal `View`.
+
+## Why an adapter (and not Custom Elements everywhere)
+
+Lumen views are plain classes by default precisely so you keep control of the lifecycle —
+e.g. `animateOut()` can finish before a node is removed. Custom Elements can't do that
+(`disconnectedCallback` fires *after* removal). So Lumen inverts the usual choice: classes by
+default, Custom Element only when you need interop — via this thin adapter.
+
+## API
+
+```js
+defineElement(tagName, ViewClass, { attributes? })
+```
+
+| Param | Description |
+|---|---|
+| `tagName` | A custom element name (must contain a hyphen), e.g. `'hello-widget'`. |
+| `ViewClass` | The `View` subclass to wrap. |
+| `options.attributes` | Attribute names to keep synced into `props` after mount (`observedAttributes`). |
+
+## Example
+
+```js
+import { View, defineElement } from 'lumen';
+
+class Hello extends View {
+  static template = '#hello';
+  onMount() { this.ui.name.textContent = this.props.name; }
+}
+
+defineElement('hello-widget', Hello);
+```
+
+```html
+<hello-widget name="Ada"></hello-widget>
+<hello-widget name="Grace"></hello-widget>   <!-- independent instances -->
+```
+
+- **Attributes → props.** On connect, every attribute is read into `props` (string values).
+- **Complex data → `.props`.** For objects or callbacks, set the element's `.props` property before inserting it: `el.props = { onSave }`.
+- **Lifecycle.** Connect mounts the view into the host; disconnect unmounts it (cleanup runs).
+
+## Caveat: no leave animation
+
+The browser removes the node *before* `disconnectedCallback`, so `animateOut()` cannot play
+when the host element is removed — cleanup (signal abort, `onUnmount`) still runs. This is
+the exact limitation that keeps plain classes the default; the adapter is for interop, where
+leave-animations aren't expected.
+
+## Design notes
+
+- `element.js` imports nothing — it wraps any object with `mount`/`unmount`/`props` (duck-typed), so it adds no coupling to the framework graph.
+- `defineElement` is idempotent (a second call for the same tag is a no-op).
+
+
+---
+
+<!-- docs/en/styling.md -->
+
+# Styling
+
+Lumen ships **zero CSS** and imposes nothing. You bring whatever you like. Because views
+render into the **Light DOM** (no Shadow DOM), any global stylesheet or utility classes
+apply directly to the nodes cloned from your `<template>` — there is nothing to pierce or
+configure.
+
+## Your options
+
+| Approach | When |
+|---|---|
+| **Plain CSS** + a naming convention | Simplest; total control. |
+| Native **`@scope`** | Component-scoped styles without Shadow DOM and without a build. Recommended for isolation. |
+| **Tailwind** (or any utility framework) | Utilities in your template markup. |
+| Any CSS framework via CDN/build | It's just global CSS; Lumen doesn't get in the way. |
+
+## Scoped styles without a build: `@scope`
+
+`@scope` (Chrome/Edge 118+, Safari 17.4+, Firefox 2024+) gives real isolation in the Light
+DOM — no Shadow DOM, no build:
+
+```css
+@scope (.card) {
+  :scope { padding: 1rem; border-radius: var(--radius); }
+  h3 { font-size: 1.1rem; }   /* only h3 inside .card */
+}
+```
+
+Global design tokens (`:root { --radius: 8px }`) still reach everything, so theming stays simple.
+
+## Tailwind
+
+Write utilities right in the `<template>`; `clone` copies them and they apply because the
+view is Light DOM:
+
+```html
+<template id="card">
+  <div class="rounded-xl border border-slate-200 shadow-sm p-4 bg-white" data-ref="root">
+    <h3 class="font-semibold" data-ref="title"></h3>
+  </div>
+</template>
+```
+
+```js
+class Card extends View {
+  static template = '#card';            // Tailwind handles the look
+  onMount() { this.ui.title.textContent = this.props.title; }
+}
+```
+
+No integration code is needed — Lumen manages behavior and lifecycle, Tailwind manages the look.
+See the runnable [Tailwind example](../../examples/tailwind/).
+
+For prototyping you can use the Tailwind **Play CDN** (`<script src="https://cdn.tailwindcss.com"></script>`),
+which JITs in the browser with no build. For production, use Tailwind's build or a prebuilt
+stylesheet.
+
+## Third-party JS widgets (e.g. Bootstrap components)
+
+For CSS frameworks that also ship JavaScript widgets (modals, dropdowns), instantiate the
+widget in `onMount` and dispose it in `onUnmount` — Lumen's lifecycle gives you the exact
+hooks:
+
+```js
+class Modal extends View {
+  static template = '#modal';
+  onMount()   { this.widget = new SomeLib.Modal(this.el); this.widget.show(); }
+  onUnmount() { this.widget.dispose(); }   // clean teardown
+}
+```
+
+## Optional: per-component styles
+
+A view can declare a `static styles` string and inject it once if you want self-contained
+components — but it is opt-in and off by default. Most apps are better served by a global
+stylesheet, `@scope`, or utilities.
+
+
+---
+
+<!-- docs/en/deployment.md -->
+
+# Deployment & loading
+
+Lumen ships unbundled native ES modules. Thanks to **HTTP/2** (and HTTP/3), that is not a
+trade-off — it's an advantage. This page covers how to serve it well.
+
+## Why no bundler is needed
+
+Under HTTP/1.1, many small files were slow (≈6 connections, per-request overhead) — which
+is why bundling existed. Under HTTP/2 that penalty is gone:
+
+- **Multiplexing** — many requests share one connection with no head-of-line blocking, so loading Lumen's small modules costs about the same as one file.
+- **Header compression (HPACK)** — cheap per-request overhead.
+- **Per-file caching** — change `view.js` and only that file's cache is invalidated; a bundle would bust the whole thing.
+
+Almost every modern static host serves HTTP/2 by default (Netlify, Vercel, Cloudflare,
+nginx, Caddy). So: **deploy the files as-is.** A bundler is optional, not required.
+
+## Flatten the ESM waterfall: `modulepreload`
+
+The one downside of native modules is the *discovery waterfall*: the browser loads
+`index.js`, parses it, sees its imports, fetches those, parses them, and so on — one round
+trip per level. Tell the browser to fetch the whole graph up front, in parallel:
+
+```html
+<link rel="modulepreload" href="/src/index.js" />
+<link rel="modulepreload" href="/src/view.js" />
+<link rel="modulepreload" href="/src/dom.js" />
+<!-- …one per module your page actually uses -->
+```
+
+Combined with HTTP/2 multiplexing, this gives a **bundle's load performance without a
+bundle**. (Server-side, `103 Early Hints` can send these preloads even earlier.)
+
+## Clean imports: import maps
+
+An import map lets you write `import { View } from 'lumen'` instead of relative paths, and
+keeps your URLs in one place:
+
+```html
+<script type="importmap">
+  { "imports": { "lumen": "/src/index.js", "lumen/": "/src/" } }
+</script>
+```
+
+Then: `import { View } from 'lumen'` or `import { clone } from 'lumen/dom.js'`. Import maps
+are supported in all current browsers; this docs site uses one.
+
+## Caching headers
+
+Because files are independent, cache them aggressively and let the URL change on deploy:
+
+```
+Cache-Control: public, max-age=31536000, immutable   # for versioned/hashed asset URLs
+Cache-Control: no-cache                               # for index.html
+```
+
+If you don't hash filenames, use a shorter max-age or `must-revalidate` so updates are
+picked up.
+
+## Don't rely on HTTP/2 Server Push
+
+Server Push was **removed** from Chrome (2022). Its replacement is exactly the
+`modulepreload` / `preload` hints above (optionally delivered via `103 Early Hints`).
+
+## The Http module
+
+The `http` module needs nothing special: `fetch` uses HTTP/2 automatically when the server
+supports it. One practical consequence — concurrency is cheap, so firing several requests at
+once is fine:
+
+```js
+const [user, posts] = await Promise.all([
+  api.get('/user', { signal }),
+  api.get('/posts', { signal }),
+]);
+```
+
+
+---
+
+<!-- docs/en/credits.md -->
+
+# Credits & lineage
+
+Lumen stands on the shoulders of **Backbone.js** and **Marionette.js**. Its design is a
+deliberate, modernized descendant of theirs — a respectful homage, not a fork (no Backbone
+or Marionette code is used; these are conceptual inspirations).
+
+## Backbone.js
+
+*(Jeremy Ashkenas & DocumentCloud)* — the events-first, explicit-state design.
+
+- **`Model`** and **`Collection`** descend directly from Backbone's. `get`/`set`,
+  `change` events, validation on the model — the lineage is obvious and intentional.
+
+## Marionette.js
+
+*(Derick Bailey)* — the view layer and composition patterns.
+
+- **`View`** — lifecycle (`onMount`/`onUnmount`), `ui`/refs, declarative event wiring.
+- **`Region`** — managing a slot and swapping the view in it.
+- **`CollectionView`** — one child view per model, kept in sync.
+- **Layouts** (`static regions`) — Marionette's `LayoutView` with named regions.
+
+If you came from Marionette, Lumen should feel like home.
+
+## What Lumen changes
+
+The patterns were right; the implementation is rebuilt for today:
+
+- **No jQuery, no Underscore, no Backbone runtime** — just the platform.
+- **No build, native ES modules** — viable now thanks to HTTP/2.
+- **No global event bus by default** — events are instances you pass explicitly.
+- **`AbortSignal`-based cleanup** — no "zombie views", no leaked listeners.
+- **Typed via JSDoc**, separate `<template>` HTML, and an **animation-aware lifecycle**
+  (`animateOut` finishes before a node is removed — something Marionette's era couldn't do cleanly).
+
+## And the platform
+
+Thanks also to the web standards that make the "no-magic, no-build" approach practical:
+`<template>`, the Web Animations API, the Constraint Validation API, import maps, and
+HTTP/2 multiplexing.
+
+> Backbone and Marionette showed that explicit, OOP, no-magic UI was not only possible but
+> pleasant. Lumen is a love letter to that idea, rewritten for the modern platform.

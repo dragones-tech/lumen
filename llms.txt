@@ -1,0 +1,28 @@
+# Lumen
+
+> A transparent, no-magic, no-build vanilla-JS OOP UI framework. What you write is what runs.
+
+Lumen is an OOP UI framework in the lineage of Backbone.js and Marionette.js, rebuilt for the modern platform: native ES modules (no build step), plain classes (not Web Components), separate HTML in <template> elements, JSDoc types, and zero runtime dependencies. Views are classes you extend; Models/Collections are observable; Regions and a hash Router handle layout and navigation.
+
+## Modules
+- [event-emitter](https://dragones-tech.github.io/lumen/docs/en/event-emitter.md): Typed event bus — on/once/off/emit, AbortSignal cleanup, no global singleton.
+- [dom](https://dragones-tech.github.io/lumen/docs/en/dom.md): clone(template), refs(root), $, $$ — the bridge between <template> markup and classes.
+- [animate](https://dragones-tech.github.io/lumen/docs/en/animate.md): Promise-based fadeIn/fadeOut/slideIn/slideOut over the Web Animations API.
+- [view](https://dragones-tech.github.io/lumen/docs/en/view.md): Abstract base class you extend — lifecycle, refs, static regions (layouts), surgical updates.
+- [model](https://dragones-tech.github.io/lumen/docs/en/model.md): Observable single-entity state (get/set, change events) + validation via static rules.
+- [collection](https://dragones-tech.github.io/lumen/docs/en/collection.md): Ordered list of Models; add/remove/reset events; non-mutating find/where/sort.
+- [collection-view](https://dragones-tech.github.io/lumen/docs/en/collection-view.md): One child View per Model, kept in sync with keyed reconciliation.
+- [region](https://dragones-tech.github.io/lumen/docs/en/region.md): Manages a DOM slot; show(view) animates the old view out before mounting the new.
+- [router](https://dragones-tech.github.io/lumen/docs/en/router.md): hashchange/popstate routing with :params; pairs with Region to swap screens.
+- [http](https://dragones-tech.github.io/lumen/docs/en/http.md): Small fetch wrapper — JSON, HttpError, per-request AbortSignal.
+- [i18n](https://dragones-tech.github.io/lumen/docs/en/i18n.md): Tiny reactive translations with {interpolation}, nested keys, and fallback.
+- [validate](https://dragones-tech.github.io/lumen/docs/en/validate.md): Composable validation rules; Model.validate() returns errors keyed by field.
+- [element](https://dragones-tech.github.io/lumen/docs/en/element.md): defineElement(tag, ViewClass) — use a View as a Custom Element.
+
+## Guides
+- [styling](https://dragones-tech.github.io/lumen/docs/en/styling.md): Style-agnostic — plain CSS, native @scope, or Tailwind.
+- [deployment](https://dragones-tech.github.io/lumen/docs/en/deployment.md): HTTP/2, import maps, modulepreload — why no bundler is needed.
+- [credits](https://dragones-tech.github.io/lumen/docs/en/credits.md): A respectful homage to Backbone.js and Marionette.js.
+
+## Full text
+- [llms-full.txt](https://dragones-tech.github.io/lumen/llms-full.txt): Every page concatenated into one file.
