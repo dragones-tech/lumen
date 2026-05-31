@@ -9,6 +9,10 @@ import { createTodoApp, TODO_SOURCE } from './demo.js';
  */
 const NAV = [
   {
+    label: { en: 'Start', es: 'Inicio' },
+    items: [{ id: 'install', doc: 'install' }],
+  },
+  {
     label: { en: 'Modules', es: 'Módulos' },
     items: [
       'event-emitter', 'dom', 'animate', 'view', 'model', 'collection', 'collection-view',

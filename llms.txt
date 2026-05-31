@@ -4,6 +4,9 @@
 
 Lumen is an OOP UI framework in the lineage of Backbone.js and Marionette.js, rebuilt for the modern platform: native ES modules (no build step), plain classes (not Web Components), separate HTML in <template> elements, JSDoc types, and zero runtime dependencies. Views are classes you extend; Models/Collections are observable; Regions and a hash Router handle layout and navigation.
 
+## Getting started
+- [install](https://dragones-tech.github.io/lumen/docs/en/install.md): How to add Lumen — CDN (import map + jsDelivr), copy src/, or npm.
+
 ## Modules
 - [event-emitter](https://dragones-tech.github.io/lumen/docs/en/event-emitter.md): Typed event bus — on/once/off/emit, AbortSignal cleanup, no global singleton.
 - [dom](https://dragones-tech.github.io/lumen/docs/en/dom.md): clone(template), refs(root), $, $$ — the bridge between <template> markup and classes.

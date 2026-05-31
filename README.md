@@ -6,6 +6,30 @@
 
 **📖 Live docs & examples · Documentación y ejemplos en vivo:** https://dragones-tech.github.io/lumen/site/
 
+## Install · Instalar
+
+No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install.md) · [es](docs/es/install.md).
+
+```html
+<!-- 1) CDN, no install — import map + jsDelivr (pin a tag/commit for production) -->
+<script type="importmap">
+{ "imports": {
+  "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+  "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+}}
+</script>
+<script type="module">
+  import { View } from 'lumen';
+</script>
+```
+
+```bash
+# 2) or copy src/ into your project (most transparent)
+# 3) or npm:
+npm i github:dragones-tech/lumen          # today (from GitHub)
+# npm i @universidad-carolina/lumen       # once published to npm
+```
+
 ## Principles · Principios
 
 - **No build.** Native ES modules. The only thing you need is a static file server (ES module imports are blocked on `file://`). Your `.js` reaches the browser untouched.
@@ -18,8 +42,8 @@
 ## Run the examples · Correr los ejemplos
 
 ```bash
-# from the repo root — zero-dep Node static server (any static server works)
-npm run serve
+# from the repo root — zero-dep Node static server with live reload
+npm run serve   # save a file → the browser reloads (set LIVERELOAD=0 to disable)
 # then open http://localhost:8000/examples/event-emitter/
 ```
 

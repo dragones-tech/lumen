@@ -20,6 +20,10 @@ const MODULES = [
   ['element', 'defineElement(tag, ViewClass) — use a View as a Custom Element.'],
 ];
 
+const START = [
+  ['install', 'How to add Lumen — CDN (import map + jsDelivr), copy src/, or npm.'],
+];
+
 const GUIDES = [
   ['styling', 'Style-agnostic — plain CSS, native @scope, or Tailwind.'],
   ['deployment', 'HTTP/2, import maps, modulepreload — why no bundler is needed.'],
@@ -42,6 +46,9 @@ const llms = `# Lumen
 
 ${INTRO}
 
+## Getting started
+${START.map(link).join('\n')}
+
 ## Modules
 ${MODULES.map(link).join('\n')}
 
@@ -57,7 +64,7 @@ writeFileSync('llms.txt', llms);
 const parts = [`# Lumen — full documentation\n\n> ${TAGLINE}\n`];
 const add = (path) => parts.push(`\n\n---\n\n<!-- ${path} -->\n\n` + readFileSync(path, 'utf8').trim());
 add('README.md');
-for (const [id] of [...MODULES, ...GUIDES]) add(`docs/en/${id}.md`);
+for (const [id] of [...START, ...MODULES, ...GUIDES]) add(`docs/en/${id}.md`);
 writeFileSync('llms-full.txt', parts.join('\n'));
 
 console.log('wrote llms.txt and llms-full.txt');
