@@ -42,8 +42,8 @@ El código es tuyo, sin gestor de paquetes, nada que se actualice a tus espaldas
 ## Opción 3 — npm / GitHub
 
 ```bash
-npm i @jehosogo/lumenjs     # cuando se publique en npm
-# o directo desde GitHub hoy:
+npm i @jehosogo/lumenjs     # publicado en npm
+# o directo desde GitHub:
 npm i github:dragones-tech/lumen
 ```
 
@@ -70,5 +70,5 @@ npm i -D typescript
 npm run check   # tsc --noEmit
 ```
 
-> Estado: publicado en GitHub (`dragones-tech/lumen`); el CDN y `github:` install funcionan
-> hoy. El nombre del paquete npm es `@jehosogo/lumenjs` (publicación pendiente).
+> Estado: publicado en npm como `@jehosogo/lumenjs`, código en GitHub (`dragones-tech/lumen`);
+> el CDN y `github:` install también funcionan.

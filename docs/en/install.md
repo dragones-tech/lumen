@@ -41,8 +41,8 @@ You own the code, no package manager, nothing to update behind your back. Very o
 ## Option 3 — npm / GitHub
 
 ```bash
-npm i @jehosogo/lumenjs     # once published to npm
-# or straight from GitHub today:
+npm i @jehosogo/lumenjs     # published on npm
+# or straight from GitHub:
 npm i github:dragones-tech/lumen
 ```
 
@@ -69,5 +69,5 @@ npm i -D typescript
 npm run check   # tsc --noEmit
 ```
 
-> Status: published on GitHub (`dragones-tech/lumen`); the CDN and `github:` install work
-> today. The npm package name is `@jehosogo/lumenjs` (publish pending).
+> Status: published on npm as `@jehosogo/lumenjs`, source on GitHub (`dragones-tech/lumen`);
+> the CDN and `github:` install also work.
