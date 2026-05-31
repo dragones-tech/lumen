@@ -4,6 +4,8 @@
 >
 > Un framework de UI en JS vanilla, OOP, transparente, sin magia y sin build. **Lo que escribes es lo que corre.**
 
+**📖 Live docs & examples · Documentación y ejemplos en vivo:** https://dragones-tech.github.io/lumen/site/
+
 ## Principles · Principios
 
 - **No build.** Native ES modules. The only thing you need is a static file server (ES module imports are blocked on `file://`). Your `.js` reaches the browser untouched.
@@ -51,15 +53,10 @@ npm run check
 | `collection-view` | ✅ done | [en](docs/en/collection-view.md) · [es](docs/es/collection-view.md) |
 | `region` | ✅ done | [en](docs/en/region.md) · [es](docs/es/region.md) |
 | `router` | ✅ done | [en](docs/en/router.md) · [es](docs/es/router.md) |
-
-## Phase 2 · Fase 2
-
-| Module | Status | Docs |
-|---|---|---|
-| `http` | ✅ done | [en](docs/en/http.md) · [es](docs/es/http.md) — `fetch` wrapper (replaces `requester`) |
-| `i18n` | ✅ done | [en](docs/en/i18n.md) · [es](docs/es/i18n.md) — translations (replaces `translate`) |
-| `validate` | ✅ done | [en](docs/en/validate.md) · [es](docs/es/validate.md) — model + UI validation, one source of truth |
-| `defineElement` | ✅ done | [en](docs/en/element.md) · [es](docs/es/element.md) — use a View as a Custom Element |
+| `http` | ✅ done | [en](docs/en/http.md) · [es](docs/es/http.md) — `fetch` wrapper |
+| `i18n` | ✅ done | [en](docs/en/i18n.md) · [es](docs/es/i18n.md) — translations |
+| `validate` | ✅ done | [en](docs/en/validate.md) · [es](docs/es/validate.md) — model + UI validation |
+| `element` | ✅ done | [en](docs/en/element.md) · [es](docs/es/element.md) — use a View as a Custom Element (`defineElement`) |
 
 ## Guides · Guías
 
