@@ -1,0 +1,24 @@
+name: Publish to npm
+
+# Runs when you publish a GitHub Release. The release tag (e.g. v0.1.0) should match
+# the version in package.json. Publishing happens via npm Trusted Publishing (OIDC) —
+# no token stored, and it bypasses 2FA in CI.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC trusted publishing + npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest # ensure a version with OIDC trusted publishing
+      - run: npm publish --provenance --access public
