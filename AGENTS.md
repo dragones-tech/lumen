@@ -67,5 +67,5 @@ Never pass an unbound method reference (`this.listen(el,'click',this.onClick)`) 
 ```bash
 npm run check     # type-check (JSDoc via tsc --noEmit)
 npm run llms      # regenerate llms.txt / llms-full.txt after editing docs
-python3 -m http.server 8000   # serve (examples at /examples, docs site at /site)
+npm run serve   # zero-dep Node static server (examples at /examples, docs site at /site)
 ```

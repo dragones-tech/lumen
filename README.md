@@ -18,8 +18,8 @@
 ## Run the examples · Correr los ejemplos
 
 ```bash
-# from the repo root — any static server works
-python3 -m http.server 8000
+# from the repo root — zero-dep Node static server (any static server works)
+npm run serve
 # then open http://localhost:8000/examples/event-emitter/
 ```
 
@@ -29,7 +29,7 @@ A bilingual (EN/ES) documentation site **built with Lumen itself** — sidebar +
 each page's live example embedded. Un sitio de documentación bilingüe **hecho con Lumen**.
 
 ```bash
-python3 -m http.server 8000
+npm run serve
 # open http://localhost:8000/site/
 ```
 
