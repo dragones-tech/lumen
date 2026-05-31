@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Validation</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color:#666; }
+    .field { margin: .6rem 0; }
+    label { display:block; font-size:.9rem; margin-bottom:.2rem; }
+    input { width:100%; padding:.45rem .6rem; border:1px solid #cbd2d9; border-radius:8px; font:inherit; }
+    input.bad { border-color:#dc2626; }
+    .err { color:#dc2626; font-size:.82rem; min-height:1rem; margin-top:.15rem; }
+    button { font:inherit; padding:.5rem 1rem; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; }
+    .ok { color:#059669; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Validation · one source of truth</h1>
+  <p class="muted">Rules live on the <code>Signup</code> model. The form calls <code>model.validate()</code> and renders the returned errors — the model is the authority, the view just paints.</p>
+
+  <template id="signup">
+    <form data-ref="form" novalidate>
+      <div class="field">
+        <label>Email</label>
+        <input data-ref="email" />
+        <div class="err" data-ref="emailErr"></div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input data-ref="password" type="password" />
+        <div class="err" data-ref="passwordErr"></div>
+      </div>
+      <div class="field">
+        <label>Confirm password</label>
+        <input data-ref="confirm" type="password" />
+        <div class="err" data-ref="confirmErr"></div>
+      </div>
+      <button>Sign up</button>
+      <span class="ok" data-ref="ok"></span>
+    </form>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Model, View, required, email, minLength, match } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Signup</span> <span class="tok-key">extends</span> Model {
+  <span class="tok-key">static</span> rules = {                       <span class="tok-com">// the single source of truth</span>
+    email:    [<span class="tok-fn">required</span>(), <span class="tok-fn">email</span>()],
+    password: [<span class="tok-fn">required</span>(), <span class="tok-fn">minLength</span>(8)],
+    confirm:  [<span class="tok-fn">match</span>(<span class="tok-str">'password'</span>, <span class="tok-str">'passwords must match'</span>)],
+  };
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">SignupForm</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#signup'</span>;
+  <span class="tok-fn">onMount</span>() { <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.form, <span class="tok-str">'submit'</span>, <span class="tok-key">this</span>.submit); }
+  submit = (e) => {
+    e.<span class="tok-fn">preventDefault</span>();
+    <span class="tok-key">this</span>.props.model.<span class="tok-fn">set</span>({
+      email: <span class="tok-key">this</span>.ui.email.value,
+      password: <span class="tok-key">this</span>.ui.password.value,
+      confirm: <span class="tok-key">this</span>.ui.confirm.value,
+    });
+    <span class="tok-key">const</span> errors = <span class="tok-key">this</span>.props.model.<span class="tok-fn">validate</span>();   <span class="tok-com">// ask the model</span>
+    <span class="tok-key">this</span>.<span class="tok-fn">showErrors</span>(errors);                          <span class="tok-com">// view just paints</span>
+  };
+  <span class="tok-fn">showErrors</span>(errors) {
+    <span class="tok-key">for</span> (<span class="tok-key">const</span> f <span class="tok-key">of</span> [<span class="tok-str">'email'</span>, <span class="tok-str">'password'</span>, <span class="tok-str">'confirm'</span>]) {
+      <span class="tok-key">this</span>.ui[f + <span class="tok-str">'Err'</span>].textContent = errors[f]?.[0] ?? <span class="tok-str">''</span>;
+      <span class="tok-key">this</span>.ui[f].classList.<span class="tok-fn">toggle</span>(<span class="tok-str">'bad'</span>, !!errors[f]);
+    }
+  }
+}</code></pre>
+
+  <h2>Run it</h2>
+  <p class="muted">Submit empty, or try a bad email / short password / mismatched confirm.</p>
+  <div id="app"></div>
+
+  <script type="module">
+    import { Model, View, required, email, minLength, match } from '../../src/index.js';
+
+    class Signup extends Model {
+      static rules = {
+        email: [required(), email()],
+        password: [required(), minLength(8)],
+        confirm: [match('password', 'passwords must match')],
+      };
+    }
+
+    class SignupForm extends View {
+      static template = '#signup';
+      onMount() { this.listen(this.ui.form, 'submit', this.submit); }
+      submit = (e) => {
+        e.preventDefault();
+        this.props.model.set({
+          email: this.ui.email.value,
+          password: this.ui.password.value,
+          confirm: this.ui.confirm.value,
+        });
+        const errors = this.props.model.validate();
+        this.showErrors(errors);
+        this.ui.ok.textContent = Object.keys(errors).length === 0 ? '✓ valid!' : '';
+      };
+      showErrors(errors) {
+        for (const f of ['email', 'password', 'confirm']) {
+          this.ui[f + 'Err'].textContent = errors[f]?.[0] ?? '';
+          this.ui[f].classList.toggle('bad', !!errors[f]);
+        }
+      }
+    }
+
+    new SignupForm({ model: new Signup({}) }).mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

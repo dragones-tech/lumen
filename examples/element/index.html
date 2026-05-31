@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Custom Element adapter</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .2rem .6rem; cursor: pointer; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color:#666; }
+    .counter { display:inline-flex; align-items:center; gap:.6rem; border:1px solid #e2e6ea; border-radius:10px; padding:.5rem .8rem; margin:.3rem .5rem .3rem 0; }
+    .counter b { min-width:2rem; text-align:center; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>defineElement · a View as &lt;counter-widget&gt;</h1>
+  <p class="muted">A normal Lumen View, registered as a Custom Element, used as a tag in plain HTML. Each tag is an independent instance; the <code>start</code> attribute becomes a prop.</p>
+
+  <template id="counter">
+    <div class="counter">
+      <span data-ref="label"></span>
+      <button data-ref="dec">−</button>
+      <b data-ref="value"></b>
+      <button data-ref="inc">+</button>
+    </div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { View, defineElement } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Counter</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#counter'</span>;
+  <span class="tok-fn">onCreate</span>() { <span class="tok-key">this</span>.n = Number(<span class="tok-key">this</span>.props.start || 0); }
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.ui.label.textContent = <span class="tok-key">this</span>.props.label || <span class="tok-str">'count'</span>;
+    <span class="tok-key">this</span>.<span class="tok-fn">paint</span>();
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.inc, <span class="tok-str">'click'</span>, () => { <span class="tok-key">this</span>.n++; <span class="tok-key">this</span>.<span class="tok-fn">paint</span>(); });
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.dec, <span class="tok-str">'click'</span>, () => { <span class="tok-key">this</span>.n--; <span class="tok-key">this</span>.<span class="tok-fn">paint</span>(); });
+  }
+  paint = () => { <span class="tok-key">this</span>.ui.value.textContent = <span class="tok-key">this</span>.n; };
+}
+
+<span class="tok-fn">defineElement</span>(<span class="tok-str">'counter-widget'</span>, Counter);   <span class="tok-com">// now &lt;counter-widget&gt; works in HTML</span></code></pre>
+
+  <h2>Run it</h2>
+  <p class="muted">Markup below is literally <code>&lt;counter-widget start="5" label="apples"&gt;</code> etc:</p>
+  <counter-widget start="5" label="apples"></counter-widget>
+  <counter-widget start="0" label="oranges"></counter-widget>
+  <counter-widget label="from zero"></counter-widget>
+
+  <script type="module">
+    import { View, defineElement } from '../../src/index.js';
+
+    class Counter extends View {
+      static template = '#counter';
+      onCreate() { this.n = Number(this.props.start || 0); }
+      onMount() {
+        this.ui.label.textContent = this.props.label || 'count';
+        this.paint();
+        this.listen(this.ui.inc, 'click', () => { this.n++; this.paint(); });
+        this.listen(this.ui.dec, 'click', () => { this.n--; this.paint(); });
+      }
+      paint = () => { this.ui.value.textContent = this.n; };
+    }
+
+    defineElement('counter-widget', Counter);
+  </script>
+</body>
+</html>

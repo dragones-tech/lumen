@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Router example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    nav a { margin-right: .8rem; }
+    #outlet { border: 1px dashed #cdd2d8; border-radius: 10px; min-height: 7rem; margin-top: .6rem; padding: .2rem; }
+    .screen { padding: 1.2rem; border-radius: 8px; color: #fff; }
+    .screen h3 { margin: 0 0 .3rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Router · hash routing + Region</h1>
+  <p class="muted">Routes resolve to <code>region.show(view)</code>, so screens animate in/out. Uses native <code>hashchange</code> — no polling. Try the links, the back button, or a param route.</p>
+
+  <template id="screen">
+    <div class="screen" data-ref="root"><h3 data-ref="title"></h3><p data-ref="body"></p></div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Router, Region, View, slideIn, slideOut } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Screen</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#screen'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.ui.root.style.background = <span class="tok-key">this</span>.props.color;
+    <span class="tok-key">this</span>.ui.title.textContent = <span class="tok-key">this</span>.props.title;
+    <span class="tok-key">this</span>.ui.body.textContent  = <span class="tok-key">this</span>.props.body;
+  }
+  <span class="tok-fn">animateIn</span>()  { <span class="tok-key">return</span> <span class="tok-fn">slideIn</span>(<span class="tok-key">this</span>.el); }
+  <span class="tok-fn">animateOut</span>() { <span class="tok-key">return</span> <span class="tok-fn">slideOut</span>(<span class="tok-key">this</span>.el); }
+}
+
+<span class="tok-key">const</span> main = <span class="tok-key">new</span> <span class="tok-fn">Region</span>(<span class="tok-str">'#outlet'</span>);
+
+<span class="tok-key">new</span> <span class="tok-fn">Router</span>()
+  .<span class="tok-fn">add</span>(<span class="tok-str">'/'</span>,          () => main.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Screen</span>({ title: <span class="tok-str">'Home'</span>,  body: <span class="tok-str">'#/'</span>,            color: <span class="tok-str">'#2563eb'</span> })))
+  .<span class="tok-fn">add</span>(<span class="tok-str">'/about'</span>,     () => main.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Screen</span>({ title: <span class="tok-str">'About'</span>, body: <span class="tok-str">'#/about'</span>,       color: <span class="tok-str">'#059669'</span> })))
+  .<span class="tok-fn">add</span>(<span class="tok-str">'/users/:id'</span>, ({ id }) => main.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Screen</span>({ title: <span class="tok-str">'User '</span> + id, body: <span class="tok-str">'param id = '</span> + id, color: <span class="tok-str">'#7c3aed'</span> })))
+  .<span class="tok-fn">notFound</span>(() => main.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Screen</span>({ title: <span class="tok-str">'404'</span>, body: <span class="tok-str">'no route'</span>, color: <span class="tok-str">'#dc2626'</span> })))
+  .<span class="tok-fn">start</span>();</code></pre>
+
+  <h2>Run it</h2>
+  <nav>
+    <a href="#/">Home</a>
+    <a href="#/about">About</a>
+    <a href="#/users/42">User 42</a>
+    <a href="#/nope">(unknown)</a>
+  </nav>
+  <div id="outlet"></div>
+
+  <script type="module">
+    import { Router, Region, View, slideIn, slideOut } from '../../src/index.js';
+
+    class Screen extends View {
+      static template = '#screen';
+      onMount() {
+        this.ui.root.style.background = this.props.color;
+        this.ui.title.textContent = this.props.title;
+        this.ui.body.textContent = this.props.body;
+      }
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); }
+    }
+
+    const main = new Region('#outlet');
+
+    new Router()
+      .add('/',          () => main.show(new Screen({ title: 'Home',  body: '#/',          color: '#2563eb' })))
+      .add('/about',     () => main.show(new Screen({ title: 'About', body: '#/about',     color: '#059669' })))
+      .add('/users/:id', ({ id }) => main.show(new Screen({ title: 'User ' + id, body: 'param id = ' + id, color: '#7c3aed' })))
+      .notFound(() => main.show(new Screen({ title: '404', body: 'no route matched', color: '#dc2626' })))
+      .start();
+  </script>
+</body>
+</html>

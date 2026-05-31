@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · animate example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .4rem .8rem; margin: 0 .4rem .4rem 0; cursor: pointer; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .box { background: #2563eb; color: #fff; border-radius: 10px; padding: 1.4rem; margin: .6rem 0; font-weight: 600; }
+    #stage { min-height: 6rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>animate · promise-based transitions</h1>
+  <p class="muted">The leave animation finishes <b>before</b> the node is removed — note the box never vanishes abruptly. Respects <code>prefers-reduced-motion</code>.</p>
+
+  <template id="box">
+    <div class="box" data-ref="box">I animate in and out</div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { clone, fadeIn, slideIn, slideOut } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">async function</span> <span class="tok-fn">show</span>() {
+  <span class="tok-key">const</span> el = <span class="tok-fn">clone</span>(<span class="tok-str">'#box'</span>);
+  stage.<span class="tok-fn">appendChild</span>(el);
+  <span class="tok-key">await</span> <span class="tok-fn">slideIn</span>(el, { duration: <span class="tok-str">300</span> });  <span class="tok-com">// resolves when the entrance ends</span>
+}
+
+<span class="tok-key">async function</span> <span class="tok-fn">hide</span>(el) {
+  <span class="tok-key">await</span> <span class="tok-fn">slideOut</span>(el, { duration: <span class="tok-str">300</span> }); <span class="tok-com">// wait for the exit...</span>
+  el.<span class="tok-fn">remove</span>();                            <span class="tok-com">// ...THEN remove from the DOM</span>
+}</code></pre>
+
+  <h2>Run it</h2>
+  <div>
+    <button data-ref="show">show (slideIn)</button>
+    <button data-ref="hide">hide (slideOut → remove)</button>
+    <button data-ref="fade">fade a new one</button>
+  </div>
+
+  <div data-ref="stage" id="stage"></div>
+
+  <script type="module">
+    import { clone, fadeIn, slideIn, slideOut } from '../../src/index.js';
+
+    const ui = {};
+    for (const node of document.querySelectorAll('[data-ref]')) ui[node.dataset.ref] = node;
+
+    async function show(animate) {
+      const el = clone('#box');
+      ui.stage.appendChild(el);
+      await animate(el, { duration: 300 }); // resolves when the entrance ends
+    }
+
+    ui.show.onclick = () => show(slideIn);
+    ui.fade.onclick = () => show(fadeIn);
+
+    ui.hide.onclick = async () => {
+      const el = ui.stage.lastElementChild;
+      if (!el) return;
+      await slideOut(el, { duration: 300 }); // wait for the exit...
+      el.remove();                           // ...THEN remove from the DOM
+    };
+  </script>
+</body>
+</html>

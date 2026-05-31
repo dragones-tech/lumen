@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · CollectionView example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button, input { font: inherit; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .todos { max-width: 28rem; }
+    .todos form { display: flex; gap: .4rem; }
+    .todos input[type=text] { flex: 1; padding: .45rem .6rem; }
+    .todos ul { list-style: none; padding: 0; margin: .6rem 0; }
+    .item { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+            border: 1px solid #dde1e6; border-radius: 8px; padding: .5rem .7rem; margin: .35rem 0; background: #fff; }
+    .item label { display: flex; align-items: center; gap: .5rem; flex: 1; }
+    .item.done span { text-decoration: line-through; color: #9aa0a6; }
+    .item button { border: none; background: #f1f3f5; border-radius: 6px; width: 1.8rem; height: 1.8rem; cursor: pointer; }
+    .foot { color: #666; font-size: .9rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>CollectionView · keyed reconciliation</h1>
+  <p class="muted">Each todo is a <code>Model</code>; the list is a <code>Collection</code>; the UI is a <code>CollectionView</code>. Add/remove touch only one child view (slide in/out). The footer reacts to model changes. Nothing else re-renders.</p>
+
+  <template id="todo-list">
+    <div class="todos">
+      <form data-ref="form"><input data-ref="input" type="text" placeholder="New todo…" autocomplete="off" /><button>add</button></form>
+      <ul data-ref="items"></ul>
+      <div class="foot"><span data-ref="count">0</span> left</div>
+    </div>
+  </template>
+
+  <template id="todo-item">
+    <li class="item">
+      <label><input type="checkbox" data-ref="check" /> <span data-ref="text"></span></label>
+      <button data-ref="remove" title="remove">×</button>
+    </li>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Collection, Model, View, CollectionView, slideIn, slideOut } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Todo</span> <span class="tok-key">extends</span> Model {}
+
+<span class="tok-key">class</span> <span class="tok-fn">TodoItem</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#todo-item'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">const</span> { model } = <span class="tok-key">this</span>.props;
+    <span class="tok-key">this</span>.ui.text.textContent = model.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>);
+    <span class="tok-key">this</span>.ui.check.checked = model.<span class="tok-fn">get</span>(<span class="tok-str">'done'</span>);
+    <span class="tok-key">this</span>.<span class="tok-fn">paint</span>();
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.check, <span class="tok-str">'change'</span>, <span class="tok-key">this</span>.toggle);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.remove, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.remove);
+    model.<span class="tok-fn">on</span>(<span class="tok-str">'change:done'</span>, <span class="tok-key">this</span>.paint, { signal: <span class="tok-key">this</span>.signal });
+  }
+  toggle = () => { <span class="tok-key">this</span>.props.model.<span class="tok-fn">set</span>(<span class="tok-str">'done'</span>, <span class="tok-key">this</span>.ui.check.checked); <span class="tok-key">this</span>.props.<span class="tok-fn">onToggle</span>(); };
+  remove = () => <span class="tok-key">this</span>.props.<span class="tok-fn">onRemove</span>();
+  paint = () => <span class="tok-key">this</span>.el.classList.<span class="tok-fn">toggle</span>(<span class="tok-str">'done'</span>, <span class="tok-key">this</span>.props.model.<span class="tok-fn">get</span>(<span class="tok-str">'done'</span>));
+  <span class="tok-fn">animateIn</span>()  { <span class="tok-key">return</span> <span class="tok-fn">slideIn</span>(<span class="tok-key">this</span>.el); }
+  <span class="tok-fn">animateOut</span>() { <span class="tok-key">return</span> <span class="tok-fn">slideOut</span>(<span class="tok-key">this</span>.el); }
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">TodoList</span> <span class="tok-key">extends</span> CollectionView {
+  <span class="tok-key">static</span> template  = <span class="tok-str">'#todo-list'</span>;
+  <span class="tok-key">static</span> childView = TodoItem;
+  <span class="tok-key">static</span> container = <span class="tok-str">'items'</span>;          <span class="tok-com">// children mount into ui.items</span>
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">super</span>.<span class="tok-fn">onMount</span>();                       <span class="tok-com">// sets up keyed reconciliation</span>
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.form, <span class="tok-str">'submit'</span>, <span class="tok-key">this</span>.onSubmit);
+    <span class="tok-key">this</span>.collection.<span class="tok-fn">on</span>(<span class="tok-str">'add'</span>, <span class="tok-key">this</span>.refreshCount, { signal: <span class="tok-key">this</span>.signal });
+    <span class="tok-key">this</span>.collection.<span class="tok-fn">on</span>(<span class="tok-str">'remove'</span>, <span class="tok-key">this</span>.refreshCount, { signal: <span class="tok-key">this</span>.signal });
+  }
+  onSubmit = (e) => {
+    e.<span class="tok-fn">preventDefault</span>();
+    <span class="tok-key">const</span> text = <span class="tok-key">this</span>.ui.input.value.<span class="tok-fn">trim</span>();
+    <span class="tok-key">if</span> (text) <span class="tok-key">this</span>.collection.<span class="tok-fn">add</span>({ text, done: <span class="tok-key">false</span> });
+    <span class="tok-key">this</span>.ui.input.value = <span class="tok-str">''</span>; <span class="tok-key">this</span>.ui.input.<span class="tok-fn">focus</span>();
+  };
+  refreshCount = () => { <span class="tok-key">this</span>.ui.count.textContent = <span class="tok-key">this</span>.collection.<span class="tok-fn">where</span>({ done: <span class="tok-key">false</span> }).length; };
+  <span class="tok-fn">childProps</span>(model) {
+    <span class="tok-key">return</span> {
+      onRemove: () => <span class="tok-key">this</span>.collection.<span class="tok-fn">remove</span>(model),
+      onToggle: () => <span class="tok-key">this</span>.<span class="tok-fn">refreshCount</span>(),
+    };
+  }
+}
+
+<span class="tok-key">const</span> todos = <span class="tok-key">new</span> <span class="tok-fn">Collection</span>([{ text: <span class="tok-str">'try Lumen'</span>, done: <span class="tok-key">false</span> }], Todo);
+<span class="tok-key">new</span> <span class="tok-fn">TodoList</span>({ collection: todos }).<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { Collection, Model, View, CollectionView, slideIn, slideOut } from '../../src/index.js';
+
+    class Todo extends Model {}
+
+    class TodoItem extends View {
+      static template = '#todo-item';
+      onMount() {
+        const { model } = this.props;
+        this.ui.text.textContent = model.get('text');
+        this.ui.check.checked = model.get('done');
+        this.paint();
+        this.listen(this.ui.check, 'change', this.toggle);
+        this.listen(this.ui.remove, 'click', this.remove);
+        model.on('change:done', this.paint, { signal: this.signal });
+      }
+      toggle = () => {
+        this.props.model.set('done', this.ui.check.checked);
+        this.props.onToggle();
+      };
+      remove = () => this.props.onRemove();
+      paint = () => this.el.classList.toggle('done', this.props.model.get('done'));
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); }
+    }
+
+    class TodoList extends CollectionView {
+      static template = '#todo-list';
+      static childView = TodoItem;
+      static container = 'items';
+      onMount() {
+        super.onMount(); // keyed reconciliation
+        this.listen(this.ui.form, 'submit', this.onSubmit);
+        this.collection.on('add', this.refreshCount, { signal: this.signal });
+        this.collection.on('remove', this.refreshCount, { signal: this.signal });
+        this.refreshCount();
+      }
+      onSubmit = (e) => {
+        e.preventDefault();
+        const text = this.ui.input.value.trim();
+        if (text) this.collection.add({ text, done: false });
+        this.ui.input.value = ''; this.ui.input.focus();
+      };
+      refreshCount = () => { this.ui.count.textContent = this.collection.where({ done: false }).length; };
+      childProps(model) {
+        return {
+          onRemove: () => this.collection.remove(model),
+          onToggle: () => this.refreshCount(),
+        };
+      }
+    }
+
+    const todos = new Collection([{ text: 'try Lumen', done: false }], Todo);
+    new TodoList({ collection: todos }).mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

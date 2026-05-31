@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · I18n example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button, input { font: inherit; }
+    button { padding: .35rem .8rem; margin-right: .3rem; cursor: pointer; }
+    input { padding: .35rem .5rem; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color:#666; }
+    .panel { border:1px solid #e2e6ea; border-radius:10px; padding:1rem; margin-top:.6rem; }
+    .panel h3 { margin:0 0 .3rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>I18n · reactive translations</h1>
+  <p class="muted">Switch the locale and the view re-renders its text (subscribed via <code>this.signal</code>). Shows interpolation and nested keys.</p>
+
+  <template id="panel">
+    <div class="panel">
+      <div>
+        <button data-ref="en">English</button>
+        <button data-ref="es">Español</button>
+        <input data-ref="name" placeholder="your name" value="Ada" style="margin-left:.5rem" />
+      </div>
+      <h3 data-ref="title"></h3>
+      <p data-ref="greeting"></p>
+      <p class="muted" data-ref="count"></p>
+    </div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { I18n, View } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">const</span> i18n = <span class="tok-key">new</span> <span class="tok-fn">I18n</span>({ locale: <span class="tok-str">'en'</span>, messages: {
+  en: { title: <span class="tok-str">'Welcome'</span>, greeting: <span class="tok-str">'Hello, {name}!'</span>, items: <span class="tok-str">'{n} items'</span> },
+  es: { title: <span class="tok-str">'Bienvenido'</span>, greeting: <span class="tok-str">'¡Hola, {name}!'</span>, items: <span class="tok-str">'{n} elementos'</span> },
+}});
+
+<span class="tok-key">class</span> <span class="tok-fn">Panel</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#panel'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.<span class="tok-fn">paint</span>();
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.name, <span class="tok-str">'input'</span>, <span class="tok-key">this</span>.paint);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.en, <span class="tok-str">'click'</span>, () => i18n.<span class="tok-fn">setLocale</span>(<span class="tok-str">'en'</span>));
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.es, <span class="tok-str">'click'</span>, () => i18n.<span class="tok-fn">setLocale</span>(<span class="tok-str">'es'</span>));
+    i18n.<span class="tok-fn">onChange</span>(<span class="tok-key">this</span>.paint, { signal: <span class="tok-key">this</span>.signal }); <span class="tok-com">// re-render on locale change</span>
+  }
+  paint = () => {
+    <span class="tok-key">this</span>.ui.title.textContent    = i18n.<span class="tok-fn">t</span>(<span class="tok-str">'title'</span>);
+    <span class="tok-key">this</span>.ui.greeting.textContent = i18n.<span class="tok-fn">t</span>(<span class="tok-str">'greeting'</span>, { name: <span class="tok-key">this</span>.ui.name.value || <span class="tok-str">'?'</span> });
+    <span class="tok-key">this</span>.ui.count.textContent    = i18n.<span class="tok-fn">t</span>(<span class="tok-str">'items'</span>, { n: 3 });
+  };
+}
+
+<span class="tok-key">new</span> <span class="tok-fn">Panel</span>().<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { I18n, View } from '../../src/index.js';
+
+    const i18n = new I18n({ locale: 'en', messages: {
+      en: { title: 'Welcome', greeting: 'Hello, {name}!', items: '{n} items' },
+      es: { title: 'Bienvenido', greeting: '¡Hola, {name}!', items: '{n} elementos' },
+    }});
+
+    class Panel extends View {
+      static template = '#panel';
+      onMount() {
+        this.paint();
+        this.listen(this.ui.name, 'input', this.paint);
+        this.listen(this.ui.en, 'click', () => i18n.setLocale('en'));
+        this.listen(this.ui.es, 'click', () => i18n.setLocale('es'));
+        i18n.onChange(this.paint, { signal: this.signal });
+      }
+      paint = () => {
+        this.ui.title.textContent = i18n.t('title');
+        this.ui.greeting.textContent = i18n.t('greeting', { name: this.ui.name.value || '?' });
+        this.ui.count.textContent = i18n.t('items', { n: 3 });
+      };
+    }
+
+    new Panel().mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

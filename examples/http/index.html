@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Http example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .4rem .9rem; cursor: pointer; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color:#666; }
+    ul { list-style: none; padding: 0; }
+    .user { border: 1px solid #e2e6ea; border-radius: 8px; padding: .6rem .8rem; margin: .4rem 0; }
+    .user b { display:block; }
+    .user span { color:#6b7280; font-size:.9rem; }
+    .status { color:#6b7280; font-size:.9rem; margin:.5rem 0; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Http · fetch + Collection + CollectionView</h1>
+  <p class="muted">Loads users from a public API into a Collection, rendered by a CollectionView. The request uses <code>this.signal</code>, so it cancels on unmount. (Needs internet.)</p>
+
+  <template id="user-list">
+    <div>
+      <button data-ref="reload">reload</button>
+      <div class="status" data-ref="status"></div>
+      <ul data-ref="list"></ul>
+    </div>
+  </template>
+  <template id="user-item">
+    <li class="user"><b data-ref="name"></b><span data-ref="email"></span></li>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Http, View, Model, Collection, CollectionView } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">const</span> api = <span class="tok-key">new</span> <span class="tok-fn">Http</span>({ baseURL: <span class="tok-str">'https://jsonplaceholder.typicode.com'</span> });
+
+<span class="tok-key">class</span> <span class="tok-fn">UserItem</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#user-item'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.ui.name.textContent  = <span class="tok-key">this</span>.props.model.<span class="tok-fn">get</span>(<span class="tok-str">'name'</span>);
+    <span class="tok-key">this</span>.ui.email.textContent = <span class="tok-key">this</span>.props.model.<span class="tok-fn">get</span>(<span class="tok-str">'email'</span>);
+  }
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">UserList</span> <span class="tok-key">extends</span> CollectionView {
+  <span class="tok-key">static</span> template  = <span class="tok-str">'#user-list'</span>;
+  <span class="tok-key">static</span> childView = UserItem;
+  <span class="tok-key">static</span> container = <span class="tok-str">'list'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">super</span>.<span class="tok-fn">onMount</span>();
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.reload, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.load);
+    <span class="tok-key">this</span>.<span class="tok-fn">load</span>();
+  }
+  load = <span class="tok-key">async</span> () => {
+    <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Loading…'</span>;
+    <span class="tok-key">try</span> {
+      <span class="tok-key">const</span> data = <span class="tok-key">await</span> api.<span class="tok-fn">get</span>(<span class="tok-str">'/users'</span>, { signal: <span class="tok-key">this</span>.signal });
+      <span class="tok-key">this</span>.collection.<span class="tok-fn">reset</span>(data);   <span class="tok-com">// CollectionView reconciles</span>
+      <span class="tok-key">this</span>.ui.status.textContent = data.length + <span class="tok-str">' users'</span>;
+    } <span class="tok-key">catch</span> (e) {
+      <span class="tok-key">if</span> (e.name !== <span class="tok-str">'AbortError'</span>) <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Error: '</span> + e.message;
+    }
+  };
+}
+
+<span class="tok-key">new</span> <span class="tok-fn">UserList</span>({ collection: <span class="tok-key">new</span> <span class="tok-fn">Collection</span>([], Model) }).<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { Http, View, Model, Collection, CollectionView } from '../../src/index.js';
+
+    const api = new Http({ baseURL: 'https://jsonplaceholder.typicode.com' });
+
+    class UserItem extends View {
+      static template = '#user-item';
+      onMount() {
+        this.ui.name.textContent = this.props.model.get('name');
+        this.ui.email.textContent = this.props.model.get('email');
+      }
+    }
+
+    class UserList extends CollectionView {
+      static template = '#user-list';
+      static childView = UserItem;
+      static container = 'list';
+      onMount() {
+        super.onMount();
+        this.listen(this.ui.reload, 'click', this.load);
+        this.load();
+      }
+      load = async () => {
+        this.ui.status.textContent = 'Loading…';
+        try {
+          const data = await api.get('/users', { signal: this.signal });
+          this.collection.reset(data);
+          this.ui.status.textContent = data.length + ' users';
+        } catch (e) {
+          if (e.name !== 'AbortError') this.ui.status.textContent = 'Error: ' + e.message;
+        }
+      };
+    }
+
+    new UserList({ collection: new Collection([], Model) }).mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

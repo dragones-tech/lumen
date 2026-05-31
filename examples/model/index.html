@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Model example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    label { display: block; margin: .3rem 0; }
+    input { font: inherit; padding: .3rem .5rem; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .badge { display: inline-block; border: 2px solid; border-radius: 999px; padding: .3rem 1rem; font-weight: 700; margin-top: .4rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Model · one source, surgical updates</h1>
+  <p class="muted">One <code>Profile</code> model is observed by two independent views. Each reacts only to the key it cares about — no full re-render. Type in the editor and watch the badge.</p>
+
+  <template id="editor">
+    <div>
+      <label>name <input data-ref="name" /></label>
+      <label>color <input data-ref="color" type="color" /></label>
+    </div>
+  </template>
+
+  <template id="badge">
+    <span class="badge" data-ref="badge"></span>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Model, View } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-com">// Handlers here use auto-bound arrow fields — one of three valid</span>
+<span class="tok-com">// styles (see docs/view.md). Internal logic stays a method.</span>
+<span class="tok-key">class</span> <span class="tok-fn">Editor</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#editor'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">const</span> { model } = <span class="tok-key">this</span>.props;
+    <span class="tok-key">this</span>.ui.name.value  = model.<span class="tok-fn">get</span>(<span class="tok-str">'name'</span>);
+    <span class="tok-key">this</span>.ui.color.value = model.<span class="tok-fn">get</span>(<span class="tok-str">'color'</span>);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.name,  <span class="tok-str">'input'</span>, <span class="tok-key">this</span>.onNameInput);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.color, <span class="tok-str">'input'</span>, <span class="tok-key">this</span>.onColorInput);
+  }
+  onNameInput  = () => <span class="tok-key">this</span>.props.model.<span class="tok-fn">set</span>(<span class="tok-str">'name'</span>,  <span class="tok-key">this</span>.ui.name.value);
+  onColorInput = () => <span class="tok-key">this</span>.props.model.<span class="tok-fn">set</span>(<span class="tok-str">'color'</span>, <span class="tok-key">this</span>.ui.color.value);
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">Badge</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#badge'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">const</span> { model } = <span class="tok-key">this</span>.props;
+    <span class="tok-key">this</span>.<span class="tok-fn">paint</span>();
+    model.<span class="tok-fn">on</span>(<span class="tok-str">'change'</span>, <span class="tok-key">this</span>.paint, { signal: <span class="tok-key">this</span>.signal }); <span class="tok-com">// surgical, auto-cleaned</span>
+  }
+  paint = () => {
+    <span class="tok-key">const</span> { model } = <span class="tok-key">this</span>.props;
+    <span class="tok-key">this</span>.ui.badge.textContent  = model.<span class="tok-fn">get</span>(<span class="tok-str">'name'</span>);
+    <span class="tok-key">this</span>.ui.badge.style.color  = model.<span class="tok-fn">get</span>(<span class="tok-str">'color'</span>);
+    <span class="tok-key">this</span>.ui.badge.style.borderColor = model.<span class="tok-fn">get</span>(<span class="tok-str">'color'</span>);
+  };
+}
+
+<span class="tok-key">const</span> profile = <span class="tok-key">new</span> <span class="tok-fn">Model</span>({ name: <span class="tok-str">'Ada'</span>, color: <span class="tok-str">'#2563eb'</span> });
+<span class="tok-key">new</span> <span class="tok-fn">Editor</span>({ model: profile }).<span class="tok-fn">mount</span>(app);
+<span class="tok-key">new</span> <span class="tok-fn">Badge</span>({ model: profile }).<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { Model, View } from '../../src/index.js';
+
+    // Handlers here use auto-bound arrow fields — one of three valid styles (see docs/view.md).
+    class Editor extends View {
+      static template = '#editor';
+      onMount() {
+        const { model } = this.props;
+        this.ui.name.value = model.get('name');
+        this.ui.color.value = model.get('color');
+        this.listen(this.ui.name, 'input', this.onNameInput);
+        this.listen(this.ui.color, 'input', this.onColorInput);
+      }
+      onNameInput  = () => this.props.model.set('name', this.ui.name.value);
+      onColorInput = () => this.props.model.set('color', this.ui.color.value);
+    }
+
+    class Badge extends View {
+      static template = '#badge';
+      onMount() {
+        const { model } = this.props;
+        this.paint();
+        model.on('change', this.paint, { signal: this.signal }); // surgical, auto-cleaned
+      }
+      paint = () => {
+        const { model } = this.props;
+        this.ui.badge.textContent = model.get('name');
+        this.ui.badge.style.color = model.get('color');
+        this.ui.badge.style.borderColor = model.get('color');
+      };
+    }
+
+    const profile = new Model({ name: 'Ada', color: '#2563eb' });
+    const app = document.querySelector('#app');
+    new Editor({ model: profile }).mount(app);
+    new Badge({ model: profile }).mount(app);
+  </script>
+</body>
+</html>

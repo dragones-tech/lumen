@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · View example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .4rem .8rem; cursor: pointer; }
+    input { font: inherit; padding: .4rem .5rem; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .board form { display: flex; gap: .4rem; margin-bottom: .6rem; }
+    .board input { flex: 1; }
+    .note { display: flex; align-items: center; justify-content: space-between;
+            border: 1px solid #d7dbe0; border-radius: 8px; padding: .6rem .8rem; margin: .4rem 0; background: #fff; }
+    .note button { border: none; background: #f1f3f5; border-radius: 6px; width: 1.8rem; height: 1.8rem; cursor: pointer; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>View · classes, lifecycle, animation</h1>
+  <p class="muted">A <code>Board</code> view manages <code>Note</code> child views. Notes slide in; on remove they slide out <b>before</b> leaving the DOM. The input keeps focus — nothing is re-rendered. Check the console for cleanup logs.</p>
+
+  <!-- Separate HTML -->
+  <template id="board">
+    <section class="board">
+      <form data-ref="form">
+        <input data-ref="input" placeholder="New note…" autocomplete="off" />
+        <button type="submit">add</button>
+        <button type="button" data-ref="clear">clear all</button>
+      </form>
+      <div data-ref="list"></div>
+    </section>
+  </template>
+
+  <template id="note">
+    <div class="note">
+      <span data-ref="text"></span>
+      <button data-ref="remove" title="remove">×</button>
+    </div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { View, slideIn, slideOut } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Note</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#note'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.ui.text.textContent = <span class="tok-key">this</span>.props.text;
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.remove, <span class="tok-str">'click'</span>, () => <span class="tok-key">this</span>.props.<span class="tok-fn">onRemove</span>(<span class="tok-key">this</span>));
+  }
+  <span class="tok-fn">onUnmount</span>() { console.<span class="tok-fn">log</span>(<span class="tok-str">'Note cleaned up:'</span>, <span class="tok-key">this</span>.props.text); }
+  <span class="tok-fn">animateIn</span>()  { <span class="tok-key">return</span> <span class="tok-fn">slideIn</span>(<span class="tok-key">this</span>.el); }
+  <span class="tok-fn">animateOut</span>() { <span class="tok-key">return</span> <span class="tok-fn">slideOut</span>(<span class="tok-key">this</span>.el); } <span class="tok-com">// finishes before removal</span>
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">Board</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#board'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.form, <span class="tok-str">'submit'</span>, (e) => { e.<span class="tok-fn">preventDefault</span>(); <span class="tok-key">this</span>.<span class="tok-fn">add</span>(); });
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.clear, <span class="tok-str">'click'</span>, () => <span class="tok-key">this</span>.<span class="tok-fn">clearAll</span>());
+  }
+  <span class="tok-fn">add</span>() {
+    <span class="tok-key">const</span> text = <span class="tok-key">this</span>.ui.input.value.<span class="tok-fn">trim</span>();
+    <span class="tok-key">if</span> (!text) <span class="tok-key">return</span>;
+    <span class="tok-key">this</span>.ui.input.value = <span class="tok-str">''</span>;
+    <span class="tok-key">this</span>.ui.input.<span class="tok-fn">focus</span>();          <span class="tok-com">// focus kept — no re-render</span>
+    <span class="tok-key">this</span>.<span class="tok-fn">addChild</span>(<span class="tok-key">new</span> <span class="tok-fn">Note</span>({ text, onRemove: (n) => <span class="tok-key">this</span>.<span class="tok-fn">removeChild</span>(n) }), <span class="tok-key">this</span>.ui.list);
+  }
+  <span class="tok-key">async</span> <span class="tok-fn">clearAll</span>() {
+    <span class="tok-key">for</span> (<span class="tok-key">const</span> n <span class="tok-key">of</span> [...<span class="tok-key">this</span>.children]) <span class="tok-key">await</span> <span class="tok-key">this</span>.<span class="tok-fn">removeChild</span>(n);
+  }
+}
+
+<span class="tok-key">new</span> <span class="tok-fn">Board</span>().<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { View, slideIn, slideOut } from '../../src/index.js';
+
+    class Note extends View {
+      static template = '#note';
+      onMount() {
+        this.ui.text.textContent = this.props.text;
+        this.listen(this.ui.remove, 'click', () => this.props.onRemove(this));
+      }
+      onUnmount() { console.log('Note cleaned up:', this.props.text); }
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); } // finishes before removal
+    }
+
+    class Board extends View {
+      static template = '#board';
+      onMount() {
+        this.listen(this.ui.form, 'submit', (e) => { e.preventDefault(); this.add(); });
+        this.listen(this.ui.clear, 'click', () => this.clearAll());
+      }
+      add() {
+        const text = this.ui.input.value.trim();
+        if (!text) return;
+        this.ui.input.value = '';
+        this.ui.input.focus();          // focus kept — no re-render
+        this.addChild(new Note({ text, onRemove: (n) => this.removeChild(n) }), this.ui.list);
+      }
+      async clearAll() {
+        for (const n of [...this.children]) await this.removeChild(n);
+      }
+    }
+
+    new Board().mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

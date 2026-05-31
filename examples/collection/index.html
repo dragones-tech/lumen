@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Collection example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    h3 { font-size: .9rem; color: #444; margin: 1rem 0 .2rem; }
+    button, input { font: inherit; }
+    button { padding: .35rem .7rem; margin: 0 .3rem .3rem 0; cursor: pointer; }
+    input[type=text] { padding: .35rem .5rem; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    pre.log { background: #111; color: #b6f0b6; min-height: 5rem; }
+    ol { background: #f6f8fa; border-radius: 8px; padding: .6rem 1.4rem; }
+    .muted { color: #666; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Collection · events + non-mutating queries</h1>
+  <p class="muted">The ordered list is the source of truth. <code>where</code> and <code>sort</code> return results but never reorder it — watch the list stay put while the log shows the query result.</p>
+
+  <template id="demo">
+    <div>
+      <input data-ref="text" type="text" placeholder="todo text" />
+      <label><input data-ref="done" type="checkbox" /> done</label>
+      <button data-ref="add">add</button>
+      <button data-ref="removeFirst">remove first</button>
+      <button data-ref="reset">reset</button>
+      <button data-ref="whereDone">where(done: true)</button>
+      <button data-ref="sortText">sort(by text)</button>
+      <h3>Collection order (source of truth)</h3>
+      <ol data-ref="list"></ol>
+      <h3>Log</h3>
+      <pre class="log" data-ref="log"></pre>
+    </div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { Collection, Model, View } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Todo</span> <span class="tok-key">extends</span> Model {}
+
+<span class="tok-key">class</span> <span class="tok-fn">Demo</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#demo'</span>;
+  <span class="tok-fn">onCreate</span>() {
+    <span class="tok-key">this</span>.todos = <span class="tok-key">new</span> <span class="tok-fn">Collection</span>([{ id: 1, text: <span class="tok-str">'b'</span>, done: <span class="tok-key">false</span> }], Todo);
+    <span class="tok-key">this</span>.nextId = 2;
+  }
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-com">// re-render the list whenever the collection structurally changes</span>
+    <span class="tok-key">for</span> (<span class="tok-key">const</span> e <span class="tok-key">of</span> [<span class="tok-str">'add'</span>, <span class="tok-str">'remove'</span>, <span class="tok-str">'reset'</span>])
+      <span class="tok-key">this</span>.todos.<span class="tok-fn">on</span>(e, <span class="tok-key">this</span>.renderList, { signal: <span class="tok-key">this</span>.signal });
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.add, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.addItem);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.whereDone, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.showWhereDone);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.sortText, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.showSortText);
+    <span class="tok-key">this</span>.<span class="tok-fn">renderList</span>();
+  }
+  addItem = () => <span class="tok-key">this</span>.todos.<span class="tok-fn">add</span>({ id: <span class="tok-key">this</span>.nextId++, text: <span class="tok-key">this</span>.ui.text.value || <span class="tok-str">'?'</span>, done: <span class="tok-key">this</span>.ui.done.checked });
+  showWhereDone = () => <span class="tok-key">this</span>.<span class="tok-fn">log</span>(<span class="tok-str">'where(done): '</span> + <span class="tok-key">this</span>.todos.<span class="tok-fn">where</span>({ done: <span class="tok-key">true</span> }).<span class="tok-fn">map</span>(t => t.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>)));
+  showSortText = () => <span class="tok-key">this</span>.<span class="tok-fn">log</span>(<span class="tok-str">'sort copy: '</span> + <span class="tok-key">this</span>.todos.<span class="tok-fn">sort</span>((a,b) => a.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>) &lt; b.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>) ? -1 : 1).<span class="tok-fn">map</span>(t => t.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>)));
+  <span class="tok-com">// renderList is internal logic → a normal method</span>
+  renderList = () => { <span class="tok-key">this</span>.ui.list.<span class="tok-fn">replaceChildren</span>(...<span class="tok-key">this</span>.todos.<span class="tok-fn">map</span>(t => { <span class="tok-key">const</span> li = document.<span class="tok-fn">createElement</span>(<span class="tok-str">'li'</span>); li.textContent = t.<span class="tok-fn">get</span>(<span class="tok-str">'text'</span>) + (t.<span class="tok-fn">get</span>(<span class="tok-str">'done'</span>)?<span class="tok-str">' ✓'</span>:<span class="tok-str">''</span>); <span class="tok-key">return</span> li; })); };
+}
+
+<span class="tok-key">new</span> <span class="tok-fn">Demo</span>().<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { Collection, Model, View } from '../../src/index.js';
+
+    class Todo extends Model {}
+
+    class Demo extends View {
+      static template = '#demo';
+      onCreate() {
+        this.todos = new Collection([{ id: 1, text: 'b', done: false }], Todo);
+        this.nextId = 2;
+      }
+      onMount() {
+        for (const e of ['add', 'remove', 'reset'])
+          this.todos.on(e, this.renderList, { signal: this.signal });
+        this.listen(this.ui.add, 'click', this.addItem);
+        this.listen(this.ui.removeFirst, 'click', this.removeFirst);
+        this.listen(this.ui.reset, 'click', this.resetAll);
+        this.listen(this.ui.whereDone, 'click', this.showWhereDone);
+        this.listen(this.ui.sortText, 'click', this.showSortText);
+        this.renderList();
+      }
+      addItem = () => {
+        this.todos.add({ id: this.nextId++, text: this.ui.text.value || '?', done: this.ui.done.checked });
+        this.ui.text.value = ''; this.ui.text.focus();
+      };
+      removeFirst = () => { const m = this.todos.at(0); if (m) this.todos.remove(m); };
+      resetAll = () => this.todos.reset([{ id: 1, text: 'b', done: false }]);
+      showWhereDone = () => this.log('where(done:true) → ' + this.todos.where({ done: true }).map(t => t.get('text')).join(',') + '   (collection unchanged)');
+      showSortText = () => this.log('sort copy → ' + this.todos.sort((a, b) => a.get('text') < b.get('text') ? -1 : 1).map(t => t.get('text')).join(',') + '   (collection unchanged)');
+      renderList = () => {
+        this.ui.list.replaceChildren(...this.todos.map(t => {
+          const li = document.createElement('li');
+          li.textContent = t.get('text') + (t.get('done') ? ' ✓' : '');
+          return li;
+        }));
+      };
+      log = (msg) => { this.ui.log.textContent += msg + '\n'; this.ui.log.scrollTop = this.ui.log.scrollHeight; };
+    }
+
+    new Demo().mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

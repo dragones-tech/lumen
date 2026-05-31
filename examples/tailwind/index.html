@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Tailwind integration</title>
+
+  <!-- Tailwind Play CDN: JIT in the browser, no build step. (For production use
+       Tailwind's build or a prebuilt stylesheet; the Play CDN is for prototyping.) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style> pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; } </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold">Lumen + Tailwind</h1>
+    <p class="text-slate-500 mt-1">Lumen ships no CSS. Write Tailwind utilities directly in your <code class="bg-slate-200 px-1 rounded">&lt;template&gt;</code> — views are Light DOM, so the global utilities just apply to the cloned nodes. Nothing to configure: Lumen handles behavior &amp; lifecycle, Tailwind handles the look.</p>
+
+    <!-- Templates with Tailwind classes; Lumen clones them as-is -->
+    <template id="board">
+      <div>
+        <form data-ref="form" class="flex gap-2 mb-3">
+          <input data-ref="input" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="New card title…" autocomplete="off" />
+          <button class="rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">add</button>
+        </form>
+        <div data-ref="list" class="space-y-2"></div>
+      </div>
+    </template>
+
+    <template id="card">
+      <div class="rounded-xl border border-slate-200 shadow-sm p-4 bg-white flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold" data-ref="title"></h3>
+          <p class="text-sm text-slate-500">styled with Tailwind utilities</p>
+        </div>
+        <button data-ref="remove" class="text-slate-400 hover:text-red-500 text-2xl leading-none">&times;</button>
+      </div>
+    </template>
+
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-1">Code</h2>
+    <pre class="code"><code>import { View, slideIn, slideOut } from '../../src/index.js';
+
+class Card extends View {
+  static template = '#card';              // a &lt;template&gt; full of Tailwind classes
+  onMount() {
+    this.ui.title.textContent = this.props.title;
+    this.listen(this.ui.remove, 'click', this.remove);
+  }
+  remove = () =&gt; this.props.onRemove(this);
+  animateIn()  { return slideIn(this.el); }
+  animateOut() { return slideOut(this.el); }
+}
+
+class Board extends View {
+  static template = '#board';
+  onMount() {
+    this.listen(this.ui.form, 'submit', this.add);
+    this.addCard('Hello');
+  }
+  add = (e) =&gt; {
+    e.preventDefault();
+    this.addCard(this.ui.input.value.trim() || 'Untitled');
+    this.ui.input.value = ''; this.ui.input.focus();
+  };
+  addCard(title) {                         // internal logic → a method
+    this.addChild(new Card({ title, onRemove: (c) =&gt; this.removeChild(c) }), this.ui.list);
+  }
+}
+
+new Board().mount(document.querySelector('#app'));</code></pre>
+
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-1">Run it</h2>
+    <div id="app"></div>
+  </div>
+
+  <script type="module">
+    import { View, slideIn, slideOut } from '../../src/index.js';
+
+    class Card extends View {
+      static template = '#card';
+      onMount() {
+        this.ui.title.textContent = this.props.title;
+        this.listen(this.ui.remove, 'click', this.remove);
+      }
+      remove = () => this.props.onRemove(this);
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); }
+    }
+
+    class Board extends View {
+      static template = '#board';
+      onMount() {
+        this.listen(this.ui.form, 'submit', this.add);
+        this.addCard('Hello');
+      }
+      add = (e) => {
+        e.preventDefault();
+        this.addCard(this.ui.input.value.trim() || 'Untitled');
+        this.ui.input.value = ''; this.ui.input.focus();
+      };
+      addCard(title) {
+        this.addChild(new Card({ title, onRemove: (c) => this.removeChild(c) }), this.ui.list);
+      }
+    }
+
+    new Board().mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

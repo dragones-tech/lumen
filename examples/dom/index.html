@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · dom example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .4rem .8rem; margin: 0 .4rem .4rem 0; cursor: pointer; }
+    input { font: inherit; padding: .35rem .5rem; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .note { background: #fff8e6; border: 1px solid #f0e0a8; border-radius: 8px; padding: .6rem .9rem; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: .5rem 0; }
+    .card h3 { margin: 0 0 .3rem; }
+    #out { min-height: 4rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>dom · clone + refs</h1>
+  <p class="muted">The stateless primitives that views are built from. Markup lives in a &lt;template&gt;.</p>
+
+  <div class="note">
+    This page shows <code>clone</code>, <code>refs</code> and <code>$</code> on their own — low-level plumbing.
+    You will <b>not</b> write views like this by hand. A view is a <b>class</b> that <b>extends the
+    <code>View</code> base class</b> (module&nbsp;4), which wraps <code>clone</code>&nbsp;+&nbsp;<code>refs</code>&nbsp;+
+    lifecycle&nbsp;+ cleanup for you. Here we just exercise the primitives.
+  </div>
+
+  <!-- The separate HTML: a real <template>, with full editor autocomplete. -->
+  <template id="card">
+    <article class="card">
+      <h3 data-ref="title"></h3>
+      <p data-ref="body"></p>
+    </article>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { clone, refs } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">const</span> page = <span class="tok-fn">refs</span>(document.body);  <span class="tok-com">// { title, body, build, out }</span>
+
+page.build.onclick = () => {
+  <span class="tok-key">const</span> el = <span class="tok-fn">clone</span>(<span class="tok-str">'#card'</span>);     <span class="tok-com">// a fresh node from the &lt;template&gt;</span>
+  <span class="tok-key">const</span> ui = <span class="tok-fn">refs</span>(el);           <span class="tok-com">// { title, body }</span>
+  ui.title.textContent = page.title.value;
+  ui.body.textContent  = page.body.value;
+  page.out.<span class="tok-fn">replaceChildren</span>(el);
+};</code></pre>
+
+  <h2>Run it</h2>
+  <div>
+    <input data-ref="title" value="Hello" />
+    <input data-ref="body" value="A node cloned from a template" />
+    <button data-ref="build">clone + fill</button>
+  </div>
+
+  <div data-ref="out" id="out"></div>
+
+  <script type="module">
+    import { clone, refs } from '../../src/index.js';
+
+    const page = refs(document.body);   // { title, body, build, out }
+
+    page.build.onclick = () => {
+      const el = clone('#card');        // a fresh node from the <template>
+      const ui = refs(el);              // { title, body }
+      ui.title.textContent = page.title.value;
+      ui.body.textContent = page.body.value;
+      page.out.replaceChildren(el);
+    };
+
+    page.build.click(); // render one to start
+  </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Region + layout example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 50rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .app { display: grid; grid-template-columns: 9rem 1fr; grid-template-rows: auto 1fr; gap: .6rem;
+           border: 1px solid #cdd2d8; border-radius: 10px; padding: .6rem; min-height: 12rem; }
+    .app > header { grid-column: 1 / -1; font-weight: 700; padding: .3rem .5rem; background: #111; color: #fff; border-radius: 6px; }
+    .app > aside { background: #f6f8fa; border-radius: 6px; padding: .5rem; }
+    .app > main { padding: .2rem; }
+    nav button { display: block; width: 100%; text-align: left; font: inherit; padding: .4rem .6rem; margin-bottom: .3rem; cursor: pointer; }
+    .screen { padding: 1.1rem; border-radius: 8px; color: #fff; }
+    .screen h3 { margin: 0 0 .3rem; }
+    .chart { margin-top: .6rem; background: rgba(255,255,255,.25); border-radius: 6px; padding: .6rem; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Region · a nested layout</h1>
+  <p class="muted">An <code>AppLayout</code> View declares <code>static regions</code> (sidebar, main). The sidebar swaps the main region between screens. <code>Dashboard</code> has its OWN nested region — open the console: navigating away tears it down in cascade.</p>
+
+  <template id="app-layout">
+    <div class="app">
+      <header>Lumen · layout</header>
+      <aside data-ref="sidebar"></aside>
+      <main  data-ref="main"></main>
+    </div>
+  </template>
+  <template id="menu">
+    <nav><button data-ref="home">Home</button><button data-ref="dash">Dashboard</button></nav>
+  </template>
+  <template id="screen">
+    <div class="screen" data-ref="root"><h3 data-ref="title"></h3><p data-ref="body"></p></div>
+  </template>
+  <template id="dashboard">
+    <div class="screen" data-ref="root" style="background:#7c3aed">
+      <h3>Dashboard</h3>
+      <div data-ref="chart"></div>           <!-- a nested region slot -->
+    </div>
+  </template>
+  <template id="chart">
+    <div class="chart" data-ref="root">📈 live chart (nested view)</div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { View, slideIn, slideOut } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">AppLayout</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#app-layout'</span>;
+  <span class="tok-key">static</span> regions  = { sidebar: <span class="tok-str">'sidebar'</span>, main: <span class="tok-str">'main'</span> };  <span class="tok-com">// auto-created + auto-cleaned</span>
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.regions.sidebar.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Menu</span>({ onGo: <span class="tok-key">this</span>.go }));
+    <span class="tok-key">this</span>.<span class="tok-fn">go</span>(<span class="tok-str">'home'</span>);
+  }
+  go = (name) => <span class="tok-key">this</span>.regions.main.<span class="tok-fn">show</span>(name === <span class="tok-str">'dash'</span> ? <span class="tok-key">new</span> <span class="tok-fn">Dashboard</span>() : <span class="tok-key">new</span> <span class="tok-fn">Home</span>());
+}
+
+<span class="tok-key">class</span> <span class="tok-fn">Dashboard</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#dashboard'</span>;
+  <span class="tok-key">static</span> regions  = { chart: <span class="tok-str">'chart'</span> };          <span class="tok-com">// a region INSIDE a region</span>
+  <span class="tok-fn">onMount</span>()   { <span class="tok-key">this</span>.regions.chart.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Chart</span>()); }
+  <span class="tok-fn">animateIn</span>()  { <span class="tok-key">return</span> <span class="tok-fn">slideIn</span>(<span class="tok-key">this</span>.el); }
+  <span class="tok-fn">animateOut</span>() { <span class="tok-key">return</span> <span class="tok-fn">slideOut</span>(<span class="tok-key">this</span>.el); }
+}
+<span class="tok-com">// Leaving Dashboard unmounts it → empties its chart region → Chart.onUnmount runs. Cascade.</span>
+
+<span class="tok-key">new</span> <span class="tok-fn">AppLayout</span>().<span class="tok-fn">mount</span>(app);</code></pre>
+
+  <h2>Run it</h2>
+  <div id="app"></div>
+
+  <script type="module">
+    import { View, slideIn, slideOut } from '../../src/index.js';
+
+    class Menu extends View {
+      static template = '#menu';
+      onMount() {
+        this.listen(this.ui.home, 'click', this.goHome);
+        this.listen(this.ui.dash, 'click', this.goDash);
+      }
+      goHome = () => this.props.onGo('home');
+      goDash = () => this.props.onGo('dash');
+    }
+
+    class Home extends View {
+      static template = '#screen';
+      onMount() {
+        this.ui.root.style.background = '#2563eb';
+        this.ui.title.textContent = 'Home';
+        this.ui.body.textContent = 'A no-magic, no-build UI.';
+      }
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); }
+    }
+
+    class Chart extends View {
+      static template = '#chart';
+      onUnmount() { console.log('Chart torn down (cascade from Dashboard)'); }
+    }
+
+    class Dashboard extends View {
+      static template = '#dashboard';
+      static regions = { chart: 'chart' };   // a region INSIDE a region
+      onMount() { this.regions.chart.show(new Chart()); }
+      onUnmount() { console.log('Dashboard left'); }
+      animateIn()  { return slideIn(this.el); }
+      animateOut() { return slideOut(this.el); }
+    }
+
+    class AppLayout extends View {
+      static template = '#app-layout';
+      static regions = { sidebar: 'sidebar', main: 'main' };  // auto-created + auto-cleaned
+      onMount() {
+        this.regions.sidebar.show(new Menu({ onGo: this.go }));
+        this.go('home');
+      }
+      go = (name) => this.regions.main.show(name === 'dash' ? new Dashboard() : new Home());
+    }
+
+    new AppLayout().mount(document.querySelector('#app'));
+  </script>
+</body>
+</html>

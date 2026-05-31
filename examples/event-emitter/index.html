@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · EventEmitter example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    button { font: inherit; padding: .4rem .8rem; margin: 0 .4rem .4rem 0; cursor: pointer; }
+    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    pre.log { background: #111; color: #b6f0b6; min-height: 8rem; }
+    .muted { color: #666; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>EventEmitter</h1>
+  <p class="muted">A live, no-build example. Served over http, the code below is exactly what runs.</p>
+
+  <!-- ===== The code that instantiates and wires this demo ===== -->
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { EventEmitter } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-com">// No globals, no side effects — a channel is just an instance.</span>
+<span class="tok-key">const</span> bus = <span class="tok-key">new</span> <span class="tok-fn">EventEmitter</span>();
+
+<span class="tok-com">// Subscribe; on() returns an unsubscribe handle.</span>
+<span class="tok-key">const</span> off = bus.<span class="tok-fn">on</span>(<span class="tok-str">'ping'</span>, (n) => <span class="tok-fn">log</span>(<span class="tok-str">'ping #'</span> + n));
+pingBtn.onclick = () => bus.<span class="tok-fn">emit</span>(<span class="tok-str">'ping'</span>, ++count);
+offBtn.onclick  = () => <span class="tok-fn">off</span>(); <span class="tok-com">// further emits do nothing</span>
+
+<span class="tok-com">// Group cleanup: one AbortController removes every bound listener.</span>
+<span class="tok-key">const</span> ac = <span class="tok-key">new</span> <span class="tok-fn">AbortController</span>();
+bus.<span class="tok-fn">on</span>(<span class="tok-str">'tick'</span>, () => <span class="tok-fn">log</span>(<span class="tok-str">'tick'</span>), { signal: ac.signal });
+bus.<span class="tok-fn">on</span>(<span class="tok-str">'tock'</span>, () => <span class="tok-fn">log</span>(<span class="tok-str">'tock'</span>), { signal: ac.signal });
+ac.<span class="tok-fn">abort</span>(); <span class="tok-com">// removes BOTH at once</span></code></pre>
+
+  <!-- ===== The running demo ===== -->
+  <h2>Run it</h2>
+  <p class="muted"><b>ping</b> is subscribed on its own (no signal). <b>tick</b> &amp; <b>tock</b> are bound to an AbortController. Each is cleaned up by its own path — abort only removes tick &amp; tock, never ping.</p>
+  <div>
+    <button data-el="ping">emit "ping"</button>
+    <button data-el="off">unsubscribe ping (via off())</button>
+    <button data-el="tickTock">subscribe tick+tock (with signal)</button>
+    <button data-el="abort">abort → remove tick+tock only</button>
+    <button data-el="clear">clear log</button>
+  </div>
+
+  <pre class="log" data-el="log"></pre>
+
+  <script type="module">
+    import { EventEmitter } from '../../src/index.js';
+
+    const ui = {};
+    for (const node of document.querySelectorAll('[data-el]')) ui[node.dataset.el] = node;
+
+    const log = (msg) => { ui.log.textContent += msg + '\n'; ui.log.scrollTop = ui.log.scrollHeight; };
+
+    // No globals, no side effects — a channel is just an instance.
+    const bus = new EventEmitter();
+    let count = 0;
+
+    // Subscribe; on() returns an unsubscribe handle.
+    const onPing = (n) => log(`ping #${n}`);
+    const off = bus.on('ping', onPing);
+    ui.ping.onclick = () => bus.emit('ping', ++count);
+    ui.off.onclick = () => { off(); log('— unsubscribed ping (further emits do nothing)'); };
+
+    // Group cleanup: one AbortController removes every bound listener.
+    let ac = null;
+    ui.tickTock.onclick = () => {
+      ac = new AbortController();
+      bus.on('tick', () => log('tick'), { signal: ac.signal });
+      bus.on('tock', () => log('tock'), { signal: ac.signal });
+      bus.emit('tick'); bus.emit('tock');
+      log(`(listeners now — tick:${bus.listenerCount('tick')} tock:${bus.listenerCount('tock')})`);
+    };
+    ui.abort.onclick = () => {
+      if (!ac) return log('(subscribe tick+tock first)');
+      ac.abort();
+      bus.emit('tick'); bus.emit('tock'); // nothing happens
+      log(`— aborted tick+tock — tick:${bus.listenerCount('tick')} tock:${bus.listenerCount('tock')} · ping still has ${bus.listenerCount('ping')} listener (unaffected)`);
+    };
+
+    ui.clear.onclick = () => { ui.log.textContent = ''; };
+    log('Ready. EventEmitter created with `new` — no globals, no side effects.');
+  </script>
+</body>
+</html>
