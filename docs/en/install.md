@@ -41,14 +41,14 @@ You own the code, no package manager, nothing to update behind your back. Very o
 ## Option 3 — npm / GitHub
 
 ```bash
-npm i @dragones-tech/lumenjs     # once published to npm
+npm i @jehosogo/lumenjs     # once published to npm
 # or straight from GitHub today:
 npm i github:dragones-tech/lumen
 ```
 
-Bundlers and Node resolve `@dragones-tech/lumenjs` via the package's `exports`. In the
+Bundlers and Node resolve `@jehosogo/lumenjs` via the package's `exports`. In the
 browser **without** a bundler, still add an import map pointing the specifier at the
-installed files (e.g. `node_modules/@dragones-tech/lumenjs/src/index.js`), since browsers
+installed files (e.g. `node_modules/@jehosogo/lumenjs/src/index.js`), since browsers
 don't resolve bare specifiers on their own.
 
 ## Serve it
@@ -70,4 +70,4 @@ npm run check   # tsc --noEmit
 ```
 
 > Status: published on GitHub (`dragones-tech/lumen`); the CDN and `github:` install work
-> today. The npm package name is `@dragones-tech/lumenjs` (publish pending).
+> today. The npm package name is `@jehosogo/lumenjs` (publish pending).

@@ -27,7 +27,7 @@ No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install
 # 2) or copy src/ into your project (most transparent)
 # 3) or npm:
 npm i github:dragones-tech/lumen          # today (from GitHub)
-# npm i @dragones-tech/lumenjs       # once published to npm
+# npm i @jehosogo/lumenjs       # once published to npm
 ```
 
 ## Principles · Principios

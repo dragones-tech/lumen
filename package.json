@@ -1,5 +1,5 @@
 {
-  "name": "@dragones-tech/lumenjs",
+  "name": "@jehosogo/lumenjs",
   "version": "0.1.0",
   "description": "Lumen — a transparent, no-magic, no-build vanilla-JS OOP UI framework. What you write is what runs.",
   "type": "module",

@@ -42,14 +42,14 @@ El código es tuyo, sin gestor de paquetes, nada que se actualice a tus espaldas
 ## Opción 3 — npm / GitHub
 
 ```bash
-npm i @dragones-tech/lumenjs     # cuando se publique en npm
+npm i @jehosogo/lumenjs     # cuando se publique en npm
 # o directo desde GitHub hoy:
 npm i github:dragones-tech/lumen
 ```
 
-Los bundlers y Node resuelven `@dragones-tech/lumenjs` por el campo `exports` del paquete.
+Los bundlers y Node resuelven `@jehosogo/lumenjs` por el campo `exports` del paquete.
 En el navegador **sin** bundler, igual añade un import map apuntando el especificador a los
-archivos instalados (p. ej. `node_modules/@dragones-tech/lumenjs/src/index.js`), porque
+archivos instalados (p. ej. `node_modules/@jehosogo/lumenjs/src/index.js`), porque
 los navegadores no resuelven especificadores "pelados" por sí solos.
 
 ## Servirlo
@@ -71,4 +71,4 @@ npm run check   # tsc --noEmit
 ```
 
 > Estado: publicado en GitHub (`dragones-tech/lumen`); el CDN y `github:` install funcionan
-> hoy. El nombre del paquete npm es `@dragones-tech/lumenjs` (publicación pendiente).
+> hoy. El nombre del paquete npm es `@jehosogo/lumenjs` (publicación pendiente).
