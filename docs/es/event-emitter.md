@@ -38,7 +38,7 @@ Para eventos sin datos, tipa el payload como `void` y pasa `undefined`.
 ## Ejemplo
 
 ```js
-import { EventEmitter } from 'lumen/event-emitter';
+import { EventEmitter } from 'lumenjs/event-emitter';
 
 const bus = new EventEmitter();
 

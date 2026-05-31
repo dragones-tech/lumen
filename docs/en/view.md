@@ -53,8 +53,8 @@ Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onC
 ```
 
 ```js
-import { View } from 'lumen/view';
-import { slideIn, slideOut } from 'lumen/animate';
+import { View } from 'lumenjs/view';
+import { slideIn, slideOut } from 'lumenjs/animate';
 
 class Note extends View {
   static template = '#note';

@@ -13,7 +13,7 @@ qué datos son válidos — a diferencia de la persistencia, que vive en otra ca
 ## Definir reglas en un modelo
 
 ```js
-import { Model, required, email, minLength, match } from 'lumen';
+import { Model, required, email, minLength, match } from 'lumenjs';
 
 class Signup extends Model {
   static rules = {

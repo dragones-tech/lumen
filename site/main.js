@@ -1,5 +1,5 @@
 // @ts-check
-import { View, Region, Router } from 'lumen';
+import { View, Region, Router } from 'lumenjs';
 import { renderMarkdown } from './markdown.js';
 import { createTodoApp, TODO_SOURCE } from './demo.js';
 

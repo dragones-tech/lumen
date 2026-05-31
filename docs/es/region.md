@@ -21,7 +21,7 @@ Gestiona un único hueco del DOM que contiene como máximo una `View` a la vez, 
 ## Ejemplo
 
 ```js
-import { Region, View, fadeIn, fadeOut } from 'lumen';
+import { Region, View, fadeIn, fadeOut } from 'lumenjs';
 
 class Screen extends View {
   static template = '#screen';

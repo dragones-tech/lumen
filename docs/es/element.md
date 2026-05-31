@@ -27,7 +27,7 @@ defineElement(tagName, ViewClass, { attributes? })
 ## Ejemplo
 
 ```js
-import { View, defineElement } from 'lumen';
+import { View, defineElement } from 'lumenjs';
 
 class Hello extends View {
   static template = '#hello';

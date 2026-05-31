@@ -21,7 +21,7 @@ Manages a single DOM slot that holds at most one `View` at a time, with an anima
 ## Example
 
 ```js
-import { Region, View, fadeIn, fadeOut } from 'lumen';
+import { Region, View, fadeIn, fadeOut } from 'lumenjs';
 
 class Screen extends View {
   static template = '#screen';

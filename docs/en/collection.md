@@ -37,8 +37,8 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 ## Example
 
 ```js
-import { Collection } from 'lumen/collection';
-import { Model } from 'lumen/model';
+import { Collection } from 'lumenjs/collection';
+import { Model } from 'lumenjs/model';
 
 class Todo extends Model {}
 

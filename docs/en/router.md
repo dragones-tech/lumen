@@ -32,7 +32,7 @@ A small client-side router built on native `hashchange`/`popstate` events. It pa
 ## Example (with a Region)
 
 ```js
-import { Router, Region, View } from 'lumen';
+import { Router, Region, View } from 'lumenjs';
 
 const main = new Region('#outlet');
 

@@ -33,7 +33,7 @@ Helpers de DOM — el puente entre tu HTML separado (elementos `<template>`) y t
 ```
 
 ```js
-import { clone, refs } from 'lumen/dom';
+import { clone, refs } from 'lumenjs/dom';
 
 const el = clone('#card');          // <article> nuevo y desconectado
 const ui = refs(el);                // { title, save }

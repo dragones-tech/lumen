@@ -37,8 +37,8 @@ Una lista ordenada de `Model`s con eventos estructurales. Se empareja con `Colle
 ## Ejemplo
 
 ```js
-import { Collection } from 'lumen/collection';
-import { Model } from 'lumen/model';
+import { Collection } from 'lumenjs/collection';
+import { Model } from 'lumenjs/model';
 
 class Todo extends Model {}
 

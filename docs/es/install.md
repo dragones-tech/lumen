@@ -12,14 +12,14 @@ Añade un import map y carga desde un CDN (jsDelivr sirve el repo de GitHub dire
 <script type="importmap">
 {
   "imports": {
-    "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
-    "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+    "lumenjs": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+    "lumenjs/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
   }
 }
 </script>
 
 <script type="module">
-  import { View } from 'lumen';
+  import { View } from 'lumenjs';
   // …tu app
 </script>
 ```
@@ -33,7 +33,7 @@ Lumen son solo archivos `.js` planos. Copia el `src/` del repo en tu proyecto (p
 
 ```html
 <script type="importmap">
-{ "imports": { "lumen": "/vendor/lumen/index.js", "lumen/": "/vendor/lumen/" } }
+{ "imports": { "lumenjs": "/vendor/lumen/index.js", "lumenjs/": "/vendor/lumen/" } }
 </script>
 ```
 
@@ -42,14 +42,14 @@ El código es tuyo, sin gestor de paquetes, nada que se actualice a tus espaldas
 ## Opción 3 — npm / GitHub
 
 ```bash
-npm i @universidad-carolina/lumen     # cuando se publique en npm
+npm i @dragones-tech/lumenjs     # cuando se publique en npm
 # o directo desde GitHub hoy:
 npm i github:dragones-tech/lumen
 ```
 
-Los bundlers y Node resuelven `@universidad-carolina/lumen` por el campo `exports` del paquete.
+Los bundlers y Node resuelven `@dragones-tech/lumenjs` por el campo `exports` del paquete.
 En el navegador **sin** bundler, igual añade un import map apuntando el especificador a los
-archivos instalados (p. ej. `node_modules/@universidad-carolina/lumen/src/index.js`), porque
+archivos instalados (p. ej. `node_modules/@dragones-tech/lumenjs/src/index.js`), porque
 los navegadores no resuelven especificadores "pelados" por sí solos.
 
 ## Servirlo
@@ -71,4 +71,4 @@ npm run check   # tsc --noEmit
 ```
 
 > Estado: publicado en GitHub (`dragones-tech/lumen`); el CDN y `github:` install funcionan
-> hoy. El nombre del paquete npm es `@universidad-carolina/lumen` (publicación pendiente).
+> hoy. El nombre del paquete npm es `@dragones-tech/lumenjs` (publicación pendiente).

@@ -13,7 +13,7 @@ data is — unlike persistence, which lives elsewhere.)
 ## Defining rules on a model
 
 ```js
-import { Model, required, email, minLength, match } from 'lumen';
+import { Model, required, email, minLength, match } from 'lumenjs';
 
 class Signup extends Model {
   static rules = {

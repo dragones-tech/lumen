@@ -14,12 +14,12 @@ No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install
 <!-- 1) CDN, no install — import map + jsDelivr (pin a tag/commit for production) -->
 <script type="importmap">
 { "imports": {
-  "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
-  "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+  "lumenjs": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+  "lumenjs/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
 }}
 </script>
 <script type="module">
-  import { View } from 'lumen';
+  import { View } from 'lumenjs';
 </script>
 ```
 
@@ -27,7 +27,7 @@ No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install
 # 2) or copy src/ into your project (most transparent)
 # 3) or npm:
 npm i github:dragones-tech/lumen          # today (from GitHub)
-# npm i @universidad-carolina/lumen       # once published to npm
+# npm i @dragones-tech/lumenjs       # once published to npm
 ```
 
 ## Principles · Principios

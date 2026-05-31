@@ -43,7 +43,7 @@ Pasa la colección como prop: `new TodoList({ collection })`. Cada vista hija re
 ```
 
 ```js
-import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumen';
+import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumenjs';
 
 class Todo extends Model {}
 

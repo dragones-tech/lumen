@@ -33,16 +33,16 @@ bundle**. (Server-side, `103 Early Hints` can send these preloads even earlier.)
 
 ## Clean imports: import maps
 
-An import map lets you write `import { View } from 'lumen'` instead of relative paths, and
+An import map lets you write `import { View } from 'lumenjs'` instead of relative paths, and
 keeps your URLs in one place:
 
 ```html
 <script type="importmap">
-  { "imports": { "lumen": "/src/index.js", "lumen/": "/src/" } }
+  { "imports": { "lumenjs": "/src/index.js", "lumenjs/": "/src/" } }
 </script>
 ```
 
-Then: `import { View } from 'lumen'` or `import { clone } from 'lumen/dom.js'`. Import maps
+Then: `import { View } from 'lumenjs'` or `import { clone } from 'lumenjs/dom.js'`. Import maps
 are supported in all current browsers; this docs site uses one.
 
 ## Caching headers

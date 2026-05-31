@@ -30,7 +30,7 @@ Promise-based animation helpers built on the native Web Animations API. These ar
 ## Example
 
 ```js
-import { fadeIn, slideOut } from 'lumen/animate';
+import { fadeIn, slideOut } from 'lumenjs/animate';
 
 // Enter: append, then play the in animation.
 document.body.appendChild(el);
@@ -55,7 +55,7 @@ class Toast extends View {
 `play` accepts any Web Animations keyframes, so you are never boxed in:
 
 ```js
-import { play } from 'lumen/animate';
+import { play } from 'lumenjs/animate';
 
 await play(el, [
   { transform: 'scale(0.8)', opacity: 0 },

@@ -24,12 +24,12 @@ No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install
 <!-- 1) CDN, no install — import map + jsDelivr (pin a tag/commit for production) -->
 <script type="importmap">
 { "imports": {
-  "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
-  "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+  "lumenjs": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+  "lumenjs/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
 }}
 </script>
 <script type="module">
-  import { View } from 'lumen';
+  import { View } from 'lumenjs';
 </script>
 ```
 
@@ -37,7 +37,7 @@ No build, native ES modules, zero runtime deps. Full guide: [en](docs/en/install
 # 2) or copy src/ into your project (most transparent)
 # 3) or npm:
 npm i github:dragones-tech/lumen          # today (from GitHub)
-# npm i @universidad-carolina/lumen       # once published to npm
+# npm i @dragones-tech/lumenjs       # once published to npm
 ```
 
 ## Principles · Principios
@@ -135,14 +135,14 @@ Add an import map and load from a CDN (jsDelivr serves the GitHub repo directly)
 <script type="importmap">
 {
   "imports": {
-    "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
-    "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+    "lumenjs": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+    "lumenjs/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
   }
 }
 </script>
 
 <script type="module">
-  import { View } from 'lumen';
+  import { View } from 'lumenjs';
   // …your app
 </script>
 ```
@@ -156,7 +156,7 @@ Lumen is just plain `.js` files. Copy the repo's `src/` into your project (e.g.
 
 ```html
 <script type="importmap">
-{ "imports": { "lumen": "/vendor/lumen/index.js", "lumen/": "/vendor/lumen/" } }
+{ "imports": { "lumenjs": "/vendor/lumen/index.js", "lumenjs/": "/vendor/lumen/" } }
 </script>
 ```
 
@@ -165,14 +165,14 @@ You own the code, no package manager, nothing to update behind your back. Very o
 ## Option 3 — npm / GitHub
 
 ```bash
-npm i @universidad-carolina/lumen     # once published to npm
+npm i @dragones-tech/lumenjs     # once published to npm
 # or straight from GitHub today:
 npm i github:dragones-tech/lumen
 ```
 
-Bundlers and Node resolve `@universidad-carolina/lumen` via the package's `exports`. In the
+Bundlers and Node resolve `@dragones-tech/lumenjs` via the package's `exports`. In the
 browser **without** a bundler, still add an import map pointing the specifier at the
-installed files (e.g. `node_modules/@universidad-carolina/lumen/src/index.js`), since browsers
+installed files (e.g. `node_modules/@dragones-tech/lumenjs/src/index.js`), since browsers
 don't resolve bare specifiers on their own.
 
 ## Serve it
@@ -194,7 +194,7 @@ npm run check   # tsc --noEmit
 ```
 
 > Status: published on GitHub (`dragones-tech/lumen`); the CDN and `github:` install work
-> today. The npm package name is `@universidad-carolina/lumen` (publish pending).
+> today. The npm package name is `@dragones-tech/lumenjs` (publish pending).
 
 
 ---
@@ -241,7 +241,7 @@ For events with no data, type the payload as `void` and pass `undefined`.
 ## Example
 
 ```js
-import { EventEmitter } from 'lumen/event-emitter';
+import { EventEmitter } from 'lumenjs/event-emitter';
 
 const bus = new EventEmitter();
 
@@ -304,7 +304,7 @@ DOM helpers — the bridge between your separate HTML (`<template>` elements) an
 ```
 
 ```js
-import { clone, refs } from 'lumen/dom';
+import { clone, refs } from 'lumenjs/dom';
 
 const el = clone('#card');          // fresh detached <article>
 const ui = refs(el);                // { title, save }
@@ -366,7 +366,7 @@ Promise-based animation helpers built on the native Web Animations API. These ar
 ## Example
 
 ```js
-import { fadeIn, slideOut } from 'lumen/animate';
+import { fadeIn, slideOut } from 'lumenjs/animate';
 
 // Enter: append, then play the in animation.
 document.body.appendChild(el);
@@ -391,7 +391,7 @@ class Toast extends View {
 `play` accepts any Web Animations keyframes, so you are never boxed in:
 
 ```js
-import { play } from 'lumen/animate';
+import { play } from 'lumenjs/animate';
 
 await play(el, [
   { transform: 'scale(0.8)', opacity: 0 },
@@ -464,8 +464,8 @@ Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onC
 ```
 
 ```js
-import { View } from 'lumen/view';
-import { slideIn, slideOut } from 'lumen/animate';
+import { View } from 'lumenjs/view';
+import { slideIn, slideOut } from 'lumenjs/animate';
 
 class Note extends View {
   static template = '#note';
@@ -621,7 +621,7 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 ## Example: one model, observed surgically
 
 ```js
-import { Model } from 'lumen/model';
+import { Model } from 'lumenjs/model';
 
 const profile = new Model({ name: 'Ada', color: '#2563eb' });
 
@@ -668,7 +668,7 @@ A model is the single source of truth for whether its data is valid. Declare `st
 and call `validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
 
 ```js
-import { Model, required, email } from 'lumen';
+import { Model, required, email } from 'lumenjs';
 
 class User extends Model {
   static rules = { email: [required(), email()] };
@@ -726,8 +726,8 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 ## Example
 
 ```js
-import { Collection } from 'lumen/collection';
-import { Model } from 'lumen/model';
+import { Collection } from 'lumenjs/collection';
+import { Model } from 'lumenjs/model';
 
 class Todo extends Model {}
 
@@ -811,7 +811,7 @@ Pass the collection as a prop: `new TodoList({ collection })`. Each child view r
 ```
 
 ```js
-import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumen';
+import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumenjs';
 
 class Todo extends Model {}
 
@@ -892,7 +892,7 @@ Manages a single DOM slot that holds at most one `View` at a time, with an anima
 ## Example
 
 ```js
-import { Region, View, fadeIn, fadeOut } from 'lumen';
+import { Region, View, fadeIn, fadeOut } from 'lumenjs';
 
 class Screen extends View {
   static template = '#screen';
@@ -959,7 +959,7 @@ A small client-side router built on native `hashchange`/`popstate` events. It pa
 ## Example (with a Region)
 
 ```js
-import { Router, Region, View } from 'lumen';
+import { Router, Region, View } from 'lumenjs';
 
 const main = new Region('#outlet');
 
@@ -1028,7 +1028,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 ## Example
 
 ```js
-import { Http, HttpError } from 'lumen/http';
+import { Http, HttpError } from 'lumenjs/http';
 
 const api = new Http({ baseURL: 'https://api.example.com', headers: { Authorization: 'Bearer …' } });
 
@@ -1099,7 +1099,7 @@ Minimal internationalization (phase 2). Replaces the old framework's `translate`
 ## Example
 
 ```js
-import { I18n } from 'lumen/i18n';
+import { I18n } from 'lumenjs/i18n';
 
 const i18n = new I18n({
   locale: 'en',
@@ -1158,7 +1158,7 @@ data is — unlike persistence, which lives elsewhere.)
 ## Defining rules on a model
 
 ```js
-import { Model, required, email, minLength, match } from 'lumen';
+import { Model, required, email, minLength, match } from 'lumenjs';
 
 class Signup extends Model {
   static rules = {
@@ -1262,7 +1262,7 @@ defineElement(tagName, ViewClass, { attributes? })
 ## Example
 
 ```js
-import { View, defineElement } from 'lumen';
+import { View, defineElement } from 'lumenjs';
 
 class Hello extends View {
   static template = '#hello';
@@ -1415,16 +1415,16 @@ bundle**. (Server-side, `103 Early Hints` can send these preloads even earlier.)
 
 ## Clean imports: import maps
 
-An import map lets you write `import { View } from 'lumen'` instead of relative paths, and
+An import map lets you write `import { View } from 'lumenjs'` instead of relative paths, and
 keeps your URLs in one place:
 
 ```html
 <script type="importmap">
-  { "imports": { "lumen": "/src/index.js", "lumen/": "/src/" } }
+  { "imports": { "lumenjs": "/src/index.js", "lumenjs/": "/src/" } }
 </script>
 ```
 
-Then: `import { View } from 'lumen'` or `import { clone } from 'lumen/dom.js'`. Import maps
+Then: `import { View } from 'lumenjs'` or `import { clone } from 'lumenjs/dom.js'`. Import maps
 are supported in all current browsers; this docs site uses one.
 
 ## Caching headers

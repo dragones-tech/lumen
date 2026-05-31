@@ -34,7 +34,7 @@ Datos observables de una sola entidad (un usuario, un todo, un ajuste). Se empar
 ## Ejemplo: un modelo, observado quirúrgicamente
 
 ```js
-import { Model } from 'lumen/model';
+import { Model } from 'lumenjs/model';
 
 const profile = new Model({ name: 'Ada', color: '#2563eb' });
 
@@ -81,7 +81,7 @@ Un modelo es la única fuente de verdad de si sus datos son válidos. Declara `s
 y llama a `validate()`; la UI pinta los errores devueltos. Ver la [guía de validación](validate.md).
 
 ```js
-import { Model, required, email } from 'lumen';
+import { Model, required, email } from 'lumenjs';
 
 class User extends Model {
   static rules = { email: [required(), email()] };

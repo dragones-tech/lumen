@@ -36,7 +36,7 @@ framework anterior.
 ## Ejemplo
 
 ```js
-import { Http, HttpError } from 'lumen/http';
+import { Http, HttpError } from 'lumenjs/http';
 
 const api = new Http({ baseURL: 'https://api.example.com', headers: { Authorization: 'Bearer …' } });
 

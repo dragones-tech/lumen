@@ -23,7 +23,7 @@ zero runtime dependencies.
 
 ```js
 import { View, Model, Collection, CollectionView, Region, Router,
-         Http, I18n, defineElement, required, email } from '@universidad-carolina/lumen';
+         Http, I18n, defineElement, required, email } from '@dragones-tech/lumenjs';
 
 class Todo extends Model { static rules = { text: [required()] }; }
 

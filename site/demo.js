@@ -1,7 +1,7 @@
 // @ts-check
 // A complete little app for the landing page — built with Lumen, styled with Tailwind.
 // It combines Model + Collection + CollectionView + View + animations.
-import { View, Model, Collection, CollectionView, slideIn, slideOut } from 'lumen';
+import { View, Model, Collection, CollectionView, slideIn, slideOut } from 'lumenjs';
 
 class Todo extends Model {}
 
@@ -61,7 +61,7 @@ export function createTodoApp(lang = 'en') {
 
 /** The source shown next to the running demo on the landing page. */
 export const TODO_SOURCE = `import { View, Model, Collection, CollectionView,
-         slideIn, slideOut } from 'lumen';
+         slideIn, slideOut } from 'lumenjs';
 
 class Todo extends Model {}
 

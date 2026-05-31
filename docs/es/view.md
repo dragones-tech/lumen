@@ -53,8 +53,8 @@ Cablea listeners en `onMount()` (se re-cablean al re-montar); haz la configuraci
 ```
 
 ```js
-import { View } from 'lumen/view';
-import { slideIn, slideOut } from 'lumen/animate';
+import { View } from 'lumenjs/view';
+import { slideIn, slideOut } from 'lumenjs/animate';
 
 class Note extends View {
   static template = '#note';

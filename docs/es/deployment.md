@@ -34,16 +34,16 @@ bundle**. (Del lado servidor, `103 Early Hints` puede enviar estos preloads aún
 
 ## Imports limpios: import maps
 
-Un import map te deja escribir `import { View } from 'lumen'` en vez de rutas relativas, y
+Un import map te deja escribir `import { View } from 'lumenjs'` en vez de rutas relativas, y
 mantiene tus URLs en un solo sitio:
 
 ```html
 <script type="importmap">
-  { "imports": { "lumen": "/src/index.js", "lumen/": "/src/" } }
+  { "imports": { "lumenjs": "/src/index.js", "lumenjs/": "/src/" } }
 </script>
 ```
 
-Luego: `import { View } from 'lumen'` o `import { clone } from 'lumen/dom.js'`. Los import
+Luego: `import { View } from 'lumenjs'` o `import { clone } from 'lumenjs/dom.js'`. Los import
 maps están soportados en todos los navegadores actuales; este sitio de docs usa uno.
 
 ## Headers de caché

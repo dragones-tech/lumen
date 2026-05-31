@@ -30,7 +30,7 @@ Helpers de animación basados en promesas, construidos sobre la Web Animations A
 ## Ejemplo
 
 ```js
-import { fadeIn, slideOut } from 'lumen/animate';
+import { fadeIn, slideOut } from 'lumenjs/animate';
 
 // Entrada: añadir y luego reproducir la animación de entrada.
 document.body.appendChild(el);
@@ -55,7 +55,7 @@ class Toast extends View {
 `play` acepta cualquier keyframe de Web Animations, así que nunca quedas encajonado:
 
 ```js
-import { play } from 'lumen/animate';
+import { play } from 'lumenjs/animate';
 
 await play(el, [
   { transform: 'scale(0.8)', opacity: 0 },

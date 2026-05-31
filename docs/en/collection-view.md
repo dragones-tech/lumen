@@ -43,7 +43,7 @@ Pass the collection as a prop: `new TodoList({ collection })`. Each child view r
 ```
 
 ```js
-import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumen';
+import { Collection, Model, View, CollectionView, slideIn, slideOut } from 'lumenjs';
 
 class Todo extends Model {}
 

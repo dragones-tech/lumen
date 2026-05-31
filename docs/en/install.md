@@ -11,14 +11,14 @@ Add an import map and load from a CDN (jsDelivr serves the GitHub repo directly)
 <script type="importmap">
 {
   "imports": {
-    "lumen": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
-    "lumen/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
+    "lumenjs": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/index.js",
+    "lumenjs/": "https://cdn.jsdelivr.net/gh/dragones-tech/lumen@main/src/"
   }
 }
 </script>
 
 <script type="module">
-  import { View } from 'lumen';
+  import { View } from 'lumenjs';
   // …your app
 </script>
 ```
@@ -32,7 +32,7 @@ Lumen is just plain `.js` files. Copy the repo's `src/` into your project (e.g.
 
 ```html
 <script type="importmap">
-{ "imports": { "lumen": "/vendor/lumen/index.js", "lumen/": "/vendor/lumen/" } }
+{ "imports": { "lumenjs": "/vendor/lumen/index.js", "lumenjs/": "/vendor/lumen/" } }
 </script>
 ```
 
@@ -41,14 +41,14 @@ You own the code, no package manager, nothing to update behind your back. Very o
 ## Option 3 — npm / GitHub
 
 ```bash
-npm i @universidad-carolina/lumen     # once published to npm
+npm i @dragones-tech/lumenjs     # once published to npm
 # or straight from GitHub today:
 npm i github:dragones-tech/lumen
 ```
 
-Bundlers and Node resolve `@universidad-carolina/lumen` via the package's `exports`. In the
+Bundlers and Node resolve `@dragones-tech/lumenjs` via the package's `exports`. In the
 browser **without** a bundler, still add an import map pointing the specifier at the
-installed files (e.g. `node_modules/@universidad-carolina/lumen/src/index.js`), since browsers
+installed files (e.g. `node_modules/@dragones-tech/lumenjs/src/index.js`), since browsers
 don't resolve bare specifiers on their own.
 
 ## Serve it
@@ -70,4 +70,4 @@ npm run check   # tsc --noEmit
 ```
 
 > Status: published on GitHub (`dragones-tech/lumen`); the CDN and `github:` install work
-> today. The npm package name is `@universidad-carolina/lumen` (publish pending).
+> today. The npm package name is `@dragones-tech/lumenjs` (publish pending).

@@ -32,7 +32,7 @@ con `Region` para cambiar pantallas según cambia la URL.
 ## Ejemplo (con una Region)
 
 ```js
-import { Router, Region, View } from 'lumen';
+import { Router, Region, View } from 'lumenjs';
 
 const main = new Region('#outlet');
 

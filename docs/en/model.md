@@ -34,7 +34,7 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 ## Example: one model, observed surgically
 
 ```js
-import { Model } from 'lumen/model';
+import { Model } from 'lumenjs/model';
 
 const profile = new Model({ name: 'Ada', color: '#2563eb' });
 
@@ -81,7 +81,7 @@ A model is the single source of truth for whether its data is valid. Declare `st
 and call `validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
 
 ```js
-import { Model, required, email } from 'lumen';
+import { Model, required, email } from 'lumenjs';
 
 class User extends Model {
   static rules = { email: [required(), email()] };
