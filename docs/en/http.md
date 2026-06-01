@@ -13,7 +13,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 
 | Member | Description |
 |---|---|
-| `new Http({ baseURL?, headers?, signal? })` | Configure a client. |
+| `new Http({ baseURL?, headers?, signal?, timeout? })` | Configure a client. `timeout` (ms) is the default for every request. |
 | `get(path, options?)` | GET. Returns the parsed body. |
 | `post(path, body?, options?)` | POST (plain objects are JSON-encoded). |
 | `put` / `patch(path, body?, options?)` | PUT / PATCH. |
@@ -28,6 +28,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 | `headers` | Extra headers for this request. |
 | `signal` | `AbortSignal` to cancel (pass `view.signal`). |
 | `query` | Object of query params appended to the URL. |
+| `timeout` | Abort after N ms. Composed with `signal` via `AbortSignal.any`; overrides the client default. |
 
 ### `HttpError`
 
@@ -73,8 +74,32 @@ class UserList extends CollectionView {
 Because the request uses `this.signal`, navigating away (which unmounts the view) cancels
 an in-flight fetch — no "setState on unmounted view" class of bug.
 
+## Timeouts
+
+Pass `timeout` (ms) to abort a slow request — built on the platform's `AbortSignal.timeout()`,
+combined with your `signal` via `AbortSignal.any()`, so **either** cancelling the view **or**
+the timeout firing aborts the request. Set a default on the client, override per request:
+
+```js
+const api = new Http({ baseURL: 'https://api.example.com', timeout: 8000 });
+
+await api.get('/slow', { timeout: 2000, signal: this.signal }); // per-request override
+```
+
+A timeout rejects with a `TimeoutError` (not an `AbortError`), so you can tell "took too long"
+apart from "user navigated away":
+
+```js
+try {
+  await api.get('/slow', { timeout: 2000, signal: this.signal });
+} catch (e) {
+  if (e.name === 'TimeoutError') this.showRetry();      // it timed out
+  else if (e.name !== 'AbortError') this.showError(e);  // real error (ignore unmount aborts)
+}
+```
+
 ## Design notes
 
 - Bodies are parsed by content type: JSON when the response is JSON, text otherwise, `null` for `204`/empty.
-- A cancelled request rejects with an `AbortError` (the platform's behavior) — check `e.name === 'AbortError'` to ignore it.
+- A cancelled request rejects with an `AbortError` (the platform's behavior) — check `e.name === 'AbortError'` to ignore it. A timeout rejects with a `TimeoutError`.
 - No global instance: create one `Http` per API/base URL and pass it where needed.

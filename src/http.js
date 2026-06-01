@@ -27,6 +27,9 @@ export class HttpError extends Error {
  * @property {Record<string, string>} [headers] - Extra headers for this request.
  * @property {AbortSignal} [signal] - Cancel this request (e.g. pass `view.signal`).
  * @property {Record<string, string | number | boolean>} [query] - Query params appended to the URL.
+ * @property {number} [timeout] - Abort after this many milliseconds. Composed with `signal` via
+ *   `AbortSignal.any`, so either cancelling the view OR the timeout aborts the request. A timeout
+ *   rejects with a `TimeoutError` (not `AbortError`).
  */
 
 /**
@@ -45,7 +48,8 @@ export class HttpError extends Error {
  */
 export class Http {
   /**
-   * @param {{ baseURL?: string, headers?: Record<string, string>, signal?: AbortSignal }} [options]
+   * @param {{ baseURL?: string, headers?: Record<string, string>, signal?: AbortSignal, timeout?: number }} [options]
+   *   `timeout` (ms) is the default applied to every request; a per-request `timeout` overrides it.
    */
   constructor(options = {}) {
     /** @type {string} */
@@ -54,6 +58,8 @@ export class Http {
     this.headers = options.headers ?? {};
     /** @type {AbortSignal | undefined} */
     this.signal = options.signal;
+    /** @type {number | undefined} Default per-request timeout in milliseconds. */
+    this.timeout = options.timeout;
   }
 
   /**
@@ -77,7 +83,7 @@ export class Http {
     /** @type {Record<string, string>} */
     const headers = { ...this.headers, ...options.headers };
     /** @type {RequestInit} */
-    const init = { method, headers, signal: options.signal ?? this.signal };
+    const init = { method, headers, signal: this._signal(options) };
 
     const { body } = options;
     if (body !== undefined) {
@@ -93,6 +99,21 @@ export class Http {
     const data = await parseBody(res);
     if (!res.ok) throw new HttpError(res, data);
     return data;
+  }
+
+  /**
+   * Build the effective `AbortSignal` for a request: the caller's `signal` (or the client
+   * default), optionally combined with a timeout via `AbortSignal.any`.
+   * @private
+   * @param {RequestOptions} options
+   * @returns {AbortSignal | undefined}
+   */
+  _signal(options) {
+    const base = options.signal ?? this.signal;
+    const ms = options.timeout ?? this.timeout;
+    if (!ms) return base;
+    const timeout = AbortSignal.timeout(ms);
+    return base ? AbortSignal.any([base, timeout]) : timeout;
   }
 
   /** @param {string} path @param {RequestOptions} [options] @returns {Promise<any>} */

@@ -38,6 +38,9 @@ Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onC
 | `addChild(child, parent?)` | Mount a child (default parent: `this.el`) and track it for cascade unmount. |
 | `removeChild(child)` | Untrack and unmount a child. |
 | `listen(target, type, handler, options?)` | `addEventListener` bound to `signal` (auto-removed on unmount). |
+| `observe(target, callback, options?)` | `IntersectionObserver` bound to `signal` (auto-disconnected on unmount). |
+| `mount(parent, { animate? })` | `animate: false` skips `animateIn()` (used by `Region`'s View-Transition path). |
+| `unmount({ animate? })` | `animate: false` skips `animateOut()`; propagates through the cascade. |
 | `onCreate / onMount / onUnmount` | Lifecycle hooks (override). |
 | `animateIn / animateOut` | Transition hooks; return a Promise (override). |
 
@@ -119,6 +122,37 @@ Method on the prototype; the arrow keeps `this`, at the cost of an inline functi
 > Never pass a raw, unbound method reference (`this.listen(el, 'input', this.onNameInput)`) — `this` is lost inside it.
 
 The examples use styles 1 and 3; neither is "the" way.
+
+## Observing visibility (`observe`)
+
+`observe()` is to `IntersectionObserver` what `listen()` is to `addEventListener`: it wires
+the native observer and disconnects it automatically on `unmount()` (via `signal`). The
+observer has no `signal` option of its own, so the view bridges it for you — no manual
+`disconnect()` in `onUnmount`, no leak.
+
+Use it for *viewport-driven* behavior: reveal-on-scroll, lazy-loading, infinite scroll
+sentinels. It is a third trigger source alongside the model (data) and the lifecycle
+(mount/unmount) — and it composes with both.
+
+```js
+class Card extends View {
+  static template = '#card';
+  onMount() {
+    // Reveal once, the first time the card scrolls into view.
+    this.observe(this.el, ([entry], io) => {
+      if (!entry.isIntersecting) return;
+      this.animateIn();          // or fadeIn(this.el), or this.props.model.set('seen', true)
+      io.unobserve(this.el);     // one-shot: don't fire again
+    }, { threshold: 0.2 });
+  }
+  animateIn() { return slideIn(this.el); }
+}
+```
+
+The callback receives the standard `(entries, observer)` arguments, so `threshold`,
+`rootMargin` and `observer.unobserve()` all work exactly as on the platform. No magic, no
+global document scanner — each view observes only what it asks to. See the
+[live example](../../examples/observe/).
 
 ## Regions (layouts)
 

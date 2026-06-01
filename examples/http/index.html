@@ -21,11 +21,12 @@
 </head>
 <body>
   <h1>Http · fetch + Collection + CollectionView</h1>
-  <p class="muted">Loads users from a public API into a Collection, rendered by a CollectionView. The request uses <code>this.signal</code>, so it cancels on unmount. (Needs internet.)</p>
+  <p class="muted">Loads users from a public API into a Collection, rendered by a CollectionView. The request uses <code>this.signal</code>, so it cancels on unmount. <b>timeout 1ms</b> forces a <code>TimeoutError</code> via the <code>timeout</code> option (built on <code>AbortSignal.timeout</code> + <code>AbortSignal.any</code>). (Needs internet.)</p>
 
   <template id="user-list">
     <div>
       <button data-ref="reload">reload</button>
+      <button data-ref="slow">timeout 1ms</button>
       <div class="status" data-ref="status"></div>
       <ul data-ref="list"></ul>
     </div>
@@ -53,17 +54,19 @@
   <span class="tok-key">static</span> container = <span class="tok-str">'list'</span>;
   <span class="tok-fn">onMount</span>() {
     <span class="tok-key">super</span>.<span class="tok-fn">onMount</span>();
-    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.reload, <span class="tok-str">'click'</span>, <span class="tok-key">this</span>.load);
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.reload, <span class="tok-str">'click'</span>, () => <span class="tok-key">this</span>.<span class="tok-fn">load</span>());
+    <span class="tok-key">this</span>.<span class="tok-fn">listen</span>(<span class="tok-key">this</span>.ui.slow, <span class="tok-str">'click'</span>, () => <span class="tok-key">this</span>.<span class="tok-fn">load</span>({ timeout: <span class="tok-str">1</span> }));
     <span class="tok-key">this</span>.<span class="tok-fn">load</span>();
   }
-  load = <span class="tok-key">async</span> () => {
+  load = <span class="tok-key">async</span> (opts = {}) => {
     <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Loading…'</span>;
     <span class="tok-key">try</span> {
-      <span class="tok-key">const</span> data = <span class="tok-key">await</span> api.<span class="tok-fn">get</span>(<span class="tok-str">'/users'</span>, { signal: <span class="tok-key">this</span>.signal });
+      <span class="tok-key">const</span> data = <span class="tok-key">await</span> api.<span class="tok-fn">get</span>(<span class="tok-str">'/users'</span>, { ...opts, signal: <span class="tok-key">this</span>.signal });
       <span class="tok-key">this</span>.collection.<span class="tok-fn">reset</span>(data);   <span class="tok-com">// CollectionView reconciles</span>
       <span class="tok-key">this</span>.ui.status.textContent = data.length + <span class="tok-str">' users'</span>;
     } <span class="tok-key">catch</span> (e) {
-      <span class="tok-key">if</span> (e.name !== <span class="tok-str">'AbortError'</span>) <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Error: '</span> + e.message;
+      <span class="tok-key">if</span> (e.name === <span class="tok-str">'TimeoutError'</span>) <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Timed out ⏱'</span>;
+      <span class="tok-key">else if</span> (e.name !== <span class="tok-str">'AbortError'</span>) <span class="tok-key">this</span>.ui.status.textContent = <span class="tok-str">'Error: '</span> + e.message;
     }
   };
 }
@@ -92,17 +95,19 @@
       static container = 'list';
       onMount() {
         super.onMount();
-        this.listen(this.ui.reload, 'click', this.load);
+        this.listen(this.ui.reload, 'click', () => this.load());
+        this.listen(this.ui.slow, 'click', () => this.load({ timeout: 1 }));
         this.load();
       }
-      load = async () => {
+      load = async (opts = {}) => {
         this.ui.status.textContent = 'Loading…';
         try {
-          const data = await api.get('/users', { signal: this.signal });
+          const data = await api.get('/users', { ...opts, signal: this.signal });
           this.collection.reset(data);
           this.ui.status.textContent = data.length + ' users';
         } catch (e) {
-          if (e.name !== 'AbortError') this.ui.status.textContent = 'Error: ' + e.message;
+          if (e.name === 'TimeoutError') this.ui.status.textContent = 'Timed out ⏱';
+          else if (e.name !== 'AbortError') this.ui.status.textContent = 'Error: ' + e.message;
         }
       };
     }

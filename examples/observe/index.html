@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · observe (IntersectionObserver) example</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color: #666; }
+    .scroller { height: 16rem; overflow: auto; border: 1px solid #cdd2d8; border-radius: 10px; padding: 1rem; background: #f6f8fa; }
+    .spacer { color: #9aa3ad; text-align: center; padding: 2rem 0; }
+    .card { background: #2563eb; color: #fff; border-radius: 10px; padding: 1.1rem; margin: 1rem 0; font-weight: 600;
+            opacity: 0; }       /* starts hidden; revealed by the observer */
+    .card.seen { opacity: 1; }
+    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+  </style>
+</head>
+<body>
+  <h1>observe · reveal-on-scroll, no leaks</h1>
+  <p class="muted">Each <code>Card</code> is a View that observes itself with <code>this.observe(...)</code>. It slides in the first time it scrolls into the box, then <code>unobserve</code>s itself. The observer is bound to the view's <code>signal</code>, so it disconnects automatically on unmount — no <code>disconnect()</code> by hand. Scroll the panel.</p>
+
+  <template id="card">
+    <div class="card" data-ref="root"></div>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code><span class="tok-key">import</span> { View, slideIn } <span class="tok-key">from</span> <span class="tok-str">'../../src/index.js'</span>;
+
+<span class="tok-key">class</span> <span class="tok-fn">Card</span> <span class="tok-key">extends</span> View {
+  <span class="tok-key">static</span> template = <span class="tok-str">'#card'</span>;
+  <span class="tok-fn">onMount</span>() {
+    <span class="tok-key">this</span>.ui.root.textContent = <span class="tok-key">this</span>.props.label;
+    <span class="tok-com">// Bound to signal → the observer disconnects automatically on unmount.</span>
+    <span class="tok-key">this</span>.<span class="tok-fn">observe</span>(<span class="tok-key">this</span>.el, ([entry], io) => {
+      <span class="tok-key">if</span> (!entry.isIntersecting) <span class="tok-key">return</span>;
+      <span class="tok-key">this</span>.ui.root.classList.<span class="tok-fn">add</span>(<span class="tok-str">'seen'</span>);
+      <span class="tok-fn">slideIn</span>(<span class="tok-key">this</span>.el, { duration: <span class="tok-str">350</span> });
+      io.<span class="tok-fn">unobserve</span>(<span class="tok-key">this</span>.el);   <span class="tok-com">// one-shot reveal</span>
+    }, { threshold: <span class="tok-str">0.3</span>, root: scroller });
+  }
+}</code></pre>
+
+  <h2>Run it</h2>
+  <div class="scroller" data-ref="scroller" id="scroller">
+    <div class="spacer">↓ scroll down ↓</div>
+    <div id="cards"></div>
+    <div class="spacer">— end —</div>
+  </div>
+
+  <script type="module">
+    import { View, slideIn } from '../../src/index.js';
+
+    const scroller = document.querySelector('#scroller');
+
+    class Card extends View {
+      static template = '#card';
+      onMount() {
+        this.ui.root.textContent = this.props.label;
+        // Bound to signal → the observer disconnects automatically on unmount.
+        this.observe(this.el, ([entry], io) => {
+          if (!entry.isIntersecting) return;
+          this.ui.root.classList.add('seen');
+          slideIn(this.el, { duration: 350 });
+          io.unobserve(this.el); // one-shot reveal
+        }, { threshold: 0.3, root: scroller });
+      }
+    }
+
+    const cards = document.querySelector('#cards');
+    for (let i = 1; i <= 8; i++) {
+      new Card({ label: `Card ${i} — revealed on scroll` }).mount(cards);
+    }
+  </script>
+</body>
+</html>

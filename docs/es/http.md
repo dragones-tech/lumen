@@ -13,7 +13,7 @@ framework anterior.
 
 | Miembro | Descripción |
 |---|---|
-| `new Http({ baseURL?, headers?, signal? })` | Configura un cliente. |
+| `new Http({ baseURL?, headers?, signal?, timeout? })` | Configura un cliente. `timeout` (ms) es el default de cada petición. |
 | `get(path, options?)` | GET. Devuelve el cuerpo parseado. |
 | `post(path, body?, options?)` | POST (objetos planos se codifican a JSON). |
 | `put` / `patch(path, body?, options?)` | PUT / PATCH. |
@@ -28,6 +28,7 @@ framework anterior.
 | `headers` | Headers extra para esta petición. |
 | `signal` | `AbortSignal` para cancelar (pasa `view.signal`). |
 | `query` | Objeto de query params que se añaden a la URL. |
+| `timeout` | Aborta tras N ms. Se compone con `signal` vía `AbortSignal.any`; sobreescribe el default del cliente. |
 
 ### `HttpError`
 
@@ -73,8 +74,33 @@ class UserList extends CollectionView {
 Como la petición usa `this.signal`, navegar a otra parte (que desmonta la vista) cancela un
 fetch en vuelo — adiós a la clase de bug de "setState en una vista desmontada".
 
+## Timeouts
+
+Pasa `timeout` (ms) para abortar una petición lenta — construido sobre el `AbortSignal.timeout()`
+de la plataforma, combinado con tu `signal` vía `AbortSignal.any()`, así que **o** cancelar la
+vista **o** que salte el timeout aborta la petición. Pon un default en el cliente y sobreescribe
+por petición:
+
+```js
+const api = new Http({ baseURL: 'https://api.example.com', timeout: 8000 });
+
+await api.get('/slow', { timeout: 2000, signal: this.signal }); // override por petición
+```
+
+Un timeout rechaza con `TimeoutError` (no `AbortError`), así puedes distinguir "tardó demasiado"
+de "el usuario navegó a otra parte":
+
+```js
+try {
+  await api.get('/slow', { timeout: 2000, signal: this.signal });
+} catch (e) {
+  if (e.name === 'TimeoutError') this.showRetry();      // hizo timeout
+  else if (e.name !== 'AbortError') this.showError(e);  // error real (ignora aborts por desmontaje)
+}
+```
+
 ## Notas de diseño
 
 - Los cuerpos se parsean por content-type: JSON cuando la respuesta es JSON, texto si no, `null` para `204`/vacío.
-- Una petición cancelada rechaza con `AbortError` (comportamiento de la plataforma) — comprueba `e.name === 'AbortError'` para ignorarla.
+- Una petición cancelada rechaza con `AbortError` (comportamiento de la plataforma) — comprueba `e.name === 'AbortError'` para ignorarla. Un timeout rechaza con `TimeoutError`.
 - Sin instancia global: crea un `Http` por API/base URL y pásalo donde haga falta.
