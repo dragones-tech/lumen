@@ -27,6 +27,7 @@ const START = [
 const GUIDES = [
   ['tradeoffs', 'Strengths & limits — what Lumen is great at, where it falls short, and when to use it.'],
   ['structure', 'Project structure — one View per file, where templates live, server partials vs static.'],
+  ['messaging', 'Messaging between views — a shared EventEmitter bus + Model/Collection events, leak-free via signal.'],
   ['styling', 'Style-agnostic — plain CSS, native @scope, or Tailwind.'],
   ['deployment', 'HTTP/2, import maps, modulepreload — why no bundler is needed.'],
   ['credits', 'A respectful homage to Backbone.js and Marionette.js.'],

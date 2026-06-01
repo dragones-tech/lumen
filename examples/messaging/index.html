@@ -96,12 +96,21 @@ class Toasts extends View {
     this.el.appendChild(li);
     setTimeout(() => li.remove(), 2000);
   };
-}</code></pre>
+}
+
+class Catalog extends CollectionView {        // one Product view per model, kept in sync
+  static template = '#catalog'; static childView = Product; static container = 'list';
+}
+
+// Three independent views — they coordinate ONLY through the shared `cart` and `bus`.
+new CartBadge().mount(document.querySelector('#header'));
+new Catalog({ collection: new Collection(products, Model) }).mount(document.querySelector('#shop'));
+new Toasts().mount(document.querySelector('#notices'));</code></pre>
 
   <h2>Run it</h2>
   <div id="header"></div>
-  <div id="catalog"></div>
-  <div id="toasts"></div>
+  <div id="shop"></div>
+  <div id="notices"></div>
 
   <script type="module">
     import { View, Model, Collection, CollectionView, EventEmitter } from '../../src/index.js';
@@ -159,8 +168,8 @@ class Toasts extends View {
     ];
 
     new CartBadge().mount(document.querySelector('#header'));
-    new Catalog({ collection: new Collection(products, Model) }).mount(document.querySelector('#catalog'));
-    new Toasts().mount(document.querySelector('#toasts'));
+    new Catalog({ collection: new Collection(products, Model) }).mount(document.querySelector('#shop'));
+    new Toasts().mount(document.querySelector('#notices'));
   </script>
 
   <!-- colorize the Code block above -->

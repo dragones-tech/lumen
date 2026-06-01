@@ -24,6 +24,7 @@ const NAV = [
     items: [
       { id: 'tradeoffs', doc: 'tradeoffs' },
       { id: 'structure', doc: 'structure' },
+      { id: 'messaging', doc: 'messaging', example: 'messaging' },
       { id: 'styling', doc: 'styling', example: 'tailwind' },
       { id: 'deployment', doc: 'deployment' },
       { id: 'llms', doc: 'llms' },
