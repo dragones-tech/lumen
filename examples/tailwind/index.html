@@ -9,7 +9,11 @@
        Tailwind's build or a prebuilt stylesheet; the Play CDN is for prototyping.) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <style> pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; } </style>
+  <!-- highlight.js for the Code block (same theme as the docs site). -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style> pre.code { background:#0d1117; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; } </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
   <div class="max-w-2xl mx-auto p-6">
@@ -38,7 +42,7 @@
     </template>
 
     <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-1">Code</h2>
-    <pre class="code"><code>import { View, slideIn, slideOut } from '../../src/index.js';
+    <pre class="code"><code class="language-js">import { View, slideIn, slideOut } from '../../src/index.js';
 
 class Card extends View {
   static template = '#card';              // a &lt;template&gt; full of Tailwind classes
@@ -105,5 +109,8 @@ new Board().mount(document.querySelector('#app'));</code></pre>
 
     new Board().mount(document.querySelector('#app'));
   </script>
+
+  <!-- colorize the Code block above -->
+  <script>hljs.highlightAll();</script>
 </body>
 </html>
