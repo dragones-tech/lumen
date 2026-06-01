@@ -85,6 +85,34 @@ app.listen(3000);
 <script type="module" src="/static/app.js"></script>
 ```
 
+**Hono** (moderno, Web-Standards, corre en Node/Bun/Deno/edge — mismo ADN que Lumen)
+
+```js
+// server.js
+import { Hono } from 'hono';
+import { html } from 'hono/html';
+import { serveStatic } from '@hono/node-server/serve-static'; // edge: 'hono/cloudflare-workers'
+
+const app = new Hono();
+app.use('/static/*', serveStatic({ root: './' }));  // tu JS: src/ copiado o un import map de CDN
+
+app.get('/', async (c) => {
+  const clientes = await db.clientes();
+  return c.html(html`<!doctype html>
+    <body>
+      <ul>${clientes.map((x) => html`<li>${x.nombre}</li>`)}</ul>  <!-- renderizado en servidor → indexable -->
+      <template id="clientes">…</template>
+      <div id="app"></div>
+      <script type="module" src="/static/app.js"></script>
+    </body>`);
+});
+
+export default app;
+```
+
+> En runtimes edge (Cloudflare Workers) no hay filesystem — sirve el JS con los *assets*
+> estáticos de la plataforma, o apunta un import map a un CDN para `lumenjs`.
+
 > Lo que necesites **indexado** tiene que renderizarse en este HTML del servidor; Lumen pone
 > luego la interactividad. El contenido que solo aparece tras un `fetch` del cliente no se rastrea.
 
