@@ -41,42 +41,42 @@ fight you.
 
 ## Libraries vs. components
 
-"No ecosystem" needs a sharper line, because it's only half a limitation:
+"No ecosystem" needs a sharper line, because it's only half a limitation.
 
-- **Framework-agnostic libraries** — three.js, pixi.js, CodeMirror, Chart.js, MapLibre,
-  ProseMirror, D3 — own a DOM node and render themselves. Lumen is an *ideal* host:
-  instantiate the library in `onMount`, dispose it in `onUnmount`. The imperative library and
-  the imperative lifecycle match naturally — often cleaner than React's `useRef` +
-  `useEffect` + cleanup dance, with no re-render to fight and no `StrictMode` double-invoke.
+**Framework-agnostic libraries** — three.js, pixi.js, CodeMirror, Chart.js, MapLibre,
+ProseMirror, D3 — own a DOM node and render themselves. Lumen is an *ideal* host: instantiate
+the library in `onMount`, dispose it in `onUnmount`. The imperative library and the imperative
+lifecycle match naturally — often cleaner than React's `useRef` + `useEffect` + cleanup dance,
+with no re-render to fight and no `StrictMode` double-invoke.
 
-  ```js
-  import * as THREE from 'three'; // ESM — importable via a CDN/import map (still no build)
+```js
+import * as THREE from 'three'; // ESM — importable via a CDN/import map (still no build)
 
-  class Scene extends View {
-    static template = '#scene';                 // e.g. <canvas data-ref="canvas"></canvas>
-    onMount() {
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.canvas });
-      // …build the scene, then start the render loop
-      this.tick();
-    }
-    tick = () => {
-      this.renderer.render(this.scene, this.camera);
-      this._raf = requestAnimationFrame(this.tick);
-    };
-    onUnmount() {
-      cancelAnimationFrame(this._raf);
-      this.renderer.dispose();                  // free GPU resources — clean teardown
-    }
+class Scene extends View {
+  static template = '#scene';                 // e.g. <canvas data-ref="canvas"></canvas>
+  onMount() {
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.canvas });
+    // …build the scene, then start the render loop
+    this.tick();
   }
-  ```
+  tick = () => {
+    this.renderer.render(this.scene, this.camera);
+    this._raf = requestAnimationFrame(this.tick);
+  };
+  onUnmount() {
+    cancelAnimationFrame(this._raf);
+    this.renderer.dispose();                  // free GPU resources — clean teardown
+  }
+}
+```
 
-  The library owns its subtree; Lumen just hosts the root node and the lifecycle. For
-  creative-coding, dataviz, maps and editors this is a genuine **strength**, not a gap.
+The library owns its subtree; Lumen just hosts the root node and the lifecycle. For
+creative-coding, dataviz, maps and editors this is a genuine **strength**, not a gap.
 
-- **Framework-coupled component kits** — a React date picker, a Vue data table, MUI — are
-  bound to their framework's render model and can't be dropped into Lumen. *This* is the real
-  gap. Many needs are still covered by agnostic vanilla libraries; what you don't get is the
-  framework-bound kits.
+**Framework-coupled component kits** — a React date picker, a Vue data table, MUI — are bound
+to their framework's render model and can't be dropped into Lumen. *This* is the real gap.
+Many needs are still covered by agnostic vanilla libraries; what you don't get is the
+framework-bound kits.
 
 ## The deciding axis
 

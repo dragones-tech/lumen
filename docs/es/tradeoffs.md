@@ -44,41 +44,40 @@ mediana pero muy dinámica tipo editor le va a pelear.
 
 "Sin ecosistema" necesita una línea más afilada, porque es solo media limitación:
 
-- **Librerías agnósticas del framework** — three.js, pixi.js, CodeMirror, Chart.js, MapLibre,
-  ProseMirror, D3 — dueñan un nodo del DOM y se renderizan solas. Lumen es un anfitrión
-  *ideal*: instancias la librería en `onMount`, la liberas en `onUnmount`. La librería
-  imperativa y el ciclo de vida imperativo encajan naturalmente — a menudo más limpio que el
-  baile de `useRef` + `useEffect` + cleanup de React, sin re-render que pelear y sin el
-  doble-invoke de `StrictMode`.
+**Librerías agnósticas del framework** — three.js, pixi.js, CodeMirror, Chart.js, MapLibre,
+ProseMirror, D3 — dueñan un nodo del DOM y se renderizan solas. Lumen es un anfitrión *ideal*:
+instancias la librería en `onMount`, la liberas en `onUnmount`. La librería imperativa y el
+ciclo de vida imperativo encajan naturalmente — a menudo más limpio que el baile de `useRef` +
+`useEffect` + cleanup de React, sin re-render que pelear y sin el doble-invoke de `StrictMode`.
 
-  ```js
-  import * as THREE from 'three'; // ESM — importable por CDN/import map (sigue sin build)
+```js
+import * as THREE from 'three'; // ESM — importable por CDN/import map (sigue sin build)
 
-  class Scene extends View {
-    static template = '#scene';                 // p. ej. <canvas data-ref="canvas"></canvas>
-    onMount() {
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.canvas });
-      // …montas la escena y arrancas el loop de render
-      this.tick();
-    }
-    tick = () => {
-      this.renderer.render(this.scene, this.camera);
-      this._raf = requestAnimationFrame(this.tick);
-    };
-    onUnmount() {
-      cancelAnimationFrame(this._raf);
-      this.renderer.dispose();                  // libera recursos GPU — teardown limpio
-    }
+class Scene extends View {
+  static template = '#scene';                 // p. ej. <canvas data-ref="canvas"></canvas>
+  onMount() {
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.canvas });
+    // …montas la escena y arrancas el loop de render
+    this.tick();
   }
-  ```
+  tick = () => {
+    this.renderer.render(this.scene, this.camera);
+    this._raf = requestAnimationFrame(this.tick);
+  };
+  onUnmount() {
+    cancelAnimationFrame(this._raf);
+    this.renderer.dispose();                  // libera recursos GPU — teardown limpio
+  }
+}
+```
 
-  La librería dueña su subárbol; Lumen solo hospeda el nodo raíz y el ciclo de vida. Para
-  creative-coding, dataviz, mapas y editores esto es una **fortaleza** real, no un hueco.
+La librería dueña su subárbol; Lumen solo hospeda el nodo raíz y el ciclo de vida. Para
+creative-coding, dataviz, mapas y editores esto es una **fortaleza** real, no un hueco.
 
-- **Kits de componentes acoplados a un framework** — un date picker de React, un data table de
-  Vue, MUI — están atados al modelo de render de su framework y no se pueden meter en Lumen.
-  *Ese* es el hueco real. Muchas necesidades igual las cubren librerías vanilla agnósticas; lo
-  que no obtienes son los kits atados al framework.
+**Kits de componentes acoplados a un framework** — un date picker de React, un data table de
+Vue, MUI — están atados al modelo de render de su framework y no se pueden meter en Lumen.
+*Ese* es el hueco real. Muchas necesidades igual las cubren librerías vanilla agnósticas; lo
+que no obtienes son los kits atados al framework.
 
 ## El eje que decide
 
