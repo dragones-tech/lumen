@@ -10,7 +10,7 @@ archivo gigante que lo tiene todo.
 Una vista es una clase, así que su lugar natural es su propio módulo. Una sección mapea a un
 archivo:
 
-```
+```text
 views/
   app-layout.js     # el shell (regiones)
   header.js
@@ -115,7 +115,7 @@ export class Contacto extends View {
 
 ## Un layout sugerido (con servidor)
 
-```
+```text
 app/
   views/site/
     index.html.erb        # <div id="app"></div> + tags de assets

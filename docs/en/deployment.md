@@ -49,7 +49,7 @@ are supported in all current browsers; this docs site uses one.
 
 Because files are independent, cache them aggressively and let the URL change on deploy:
 
-```
+```text
 Cache-Control: public, max-age=31536000, immutable   # for versioned/hashed asset URLs
 Cache-Control: no-cache                               # for index.html
 ```

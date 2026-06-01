@@ -9,7 +9,7 @@ one giant file holding everything.
 
 A view is a class, so its natural home is its own module. A section maps to a file:
 
-```
+```text
 views/
   app-layout.js     # the shell (regions)
   header.js
@@ -112,7 +112,7 @@ export class Contact extends View {
 
 ## A suggested layout (server-backed)
 
-```
+```text
 app/
   views/site/
     index.html.erb        # <div id="app"></div> + asset tags

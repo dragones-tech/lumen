@@ -10,7 +10,7 @@ de IA (Claude, Codex, Cursor, …) y escriba código Lumen idiomático.
 
 En el sitio desplegado:
 
-```
+```text
 https://dragones-tech.github.io/lumen/llms.txt
 https://dragones-tech.github.io/lumen/llms-full.txt
 ```

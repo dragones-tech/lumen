@@ -10,7 +10,7 @@ Codex, Cursor, …) and have it write idiomatic Lumen code.
 
 On the deployed site:
 
-```
+```text
 https://dragones-tech.github.io/lumen/llms.txt
 https://dragones-tech.github.io/lumen/llms-full.txt
 ```

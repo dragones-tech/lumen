@@ -51,7 +51,7 @@ maps están soportados en todos los navegadores actuales; este sitio de docs usa
 Como los archivos son independientes, cachéalos agresivamente y deja que la URL cambie al
 desplegar:
 
-```
+```text
 Cache-Control: public, max-age=31536000, immutable   # para URLs de assets versionadas/hasheadas
 Cache-Control: no-cache                               # para index.html
 ```
