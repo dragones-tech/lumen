@@ -61,6 +61,33 @@ archivo que editas.
 <script type="module" src="/static/app.js"></script>
 ```
 
+**Express / EJS** (la versión Node — Lumen es una librería de UI, así que para SEO necesita un servidor así)
+
+```js
+// server.js
+import express from 'express';
+const app = express();
+app.set('view engine', 'ejs');
+app.use('/static', express.static('static'));   // tu JS: src/ copiado o un import map de CDN
+
+app.get('/', async (req, res) => {
+  res.render('index', { clientes: await db.clientes() });  // el servidor renderiza el contenido → SEO
+});
+app.listen(3000);
+```
+
+```html
+<%# views/index.ejs %>
+<%- include('_header') %>      <!-- cada parcial trae su propio <template id> -->
+<%- include('_clientes') %>
+<%- include('_contacto') %>
+<div id="app"></div>
+<script type="module" src="/static/app.js"></script>
+```
+
+> Lo que necesites **indexado** tiene que renderizarse en este HTML del servidor; Lumen pone
+> luego la interactividad. El contenido que solo aparece tras un `fetch` del cliente no se rastrea.
+
 ### Estático (sin templating de servidor)
 
 La plataforma no tiene un include de HTML nativo (HTML Modules no es Baseline), así que no
