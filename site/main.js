@@ -134,7 +134,9 @@ class DocPage extends View {
       this.ui.exWrap.hidden = true;
     }
     try {
-      const res = await fetch(`../docs/${lang}/${item.doc}.md`);
+      // `no-cache` → always revalidate with the server (cheap 304 when unchanged), so an
+      // edited doc never shows up stale from the browser/CDN cache.
+      const res = await fetch(`../docs/${lang}/${item.doc}.md`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(String(res.status));
       this.ui.body.innerHTML = renderMarkdown(await res.text());
       highlightCode(this.ui.body);
