@@ -59,31 +59,7 @@ what `clone('#id')` needs. The assembled page is **generated output**, not a fil
 <script type="module" src="/static/app.js"></script>
 ```
 
-**Express / EJS** (the Node flavor — Lumen is a UI library, so it needs a server like this for SEO)
-
-```js
-// server.js
-import express from 'express';
-const app = express();
-app.set('view engine', 'ejs');
-app.use('/static', express.static('static'));   // your JS: copied src/ or a CDN import map
-
-app.get('/', async (req, res) => {
-  res.render('index', { customers: await db.customers() });  // server renders the content → SEO
-});
-app.listen(3000);
-```
-
-```html
-<%# views/index.ejs %>
-<%- include('_header') %>      <!-- each partial holds its own <template id> -->
-<%- include('_customers') %>
-<%- include('_contact') %>
-<div id="app"></div>
-<script type="module" src="/static/app.js"></script>
-```
-
-**Hono** (modern, Web-Standards, runs on Node/Bun/Deno/edge — same ADN as Lumen)
+**Hono** (the Node/edge flavor — Lumen is a UI library, so it needs a server like this for SEO; Web-Standards, runs on Node/Bun/Deno/edge, same ADN as Lumen)
 
 ```js
 // server.js

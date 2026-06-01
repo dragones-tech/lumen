@@ -61,31 +61,7 @@ archivo que editas.
 <script type="module" src="/static/app.js"></script>
 ```
 
-**Express / EJS** (la versión Node — Lumen es una librería de UI, así que para SEO necesita un servidor así)
-
-```js
-// server.js
-import express from 'express';
-const app = express();
-app.set('view engine', 'ejs');
-app.use('/static', express.static('static'));   // tu JS: src/ copiado o un import map de CDN
-
-app.get('/', async (req, res) => {
-  res.render('index', { clientes: await db.clientes() });  // el servidor renderiza el contenido → SEO
-});
-app.listen(3000);
-```
-
-```html
-<%# views/index.ejs %>
-<%- include('_header') %>      <!-- cada parcial trae su propio <template id> -->
-<%- include('_clientes') %>
-<%- include('_contacto') %>
-<div id="app"></div>
-<script type="module" src="/static/app.js"></script>
-```
-
-**Hono** (moderno, Web-Standards, corre en Node/Bun/Deno/edge — mismo ADN que Lumen)
+**Hono** (la versión Node/edge — Lumen es una librería de UI, así que para SEO necesita un servidor así; Web-Standards, corre en Node/Bun/Deno/edge, mismo ADN que Lumen)
 
 ```js
 // server.js
