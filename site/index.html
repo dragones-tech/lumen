@@ -40,9 +40,12 @@
 <body class="text-slate-800">
   <!-- ===== App shell (a View with regions) ===== -->
   <template id="shell">
-    <div class="min-h-screen grid grid-cols-[15rem_1fr] grid-rows-[auto_1fr]">
-      <header class="col-span-2 flex items-center gap-4 px-5 py-3 border-b border-slate-200 sticky top-0 bg-white/90 backdrop-blur z-10">
-        <span class="font-extrabold text-lg tracking-tight">Lumen <small data-ref="tagline" class="text-slate-400 font-medium text-xs ml-1"></small></span>
+    <div class="min-h-screen grid grid-cols-1 lg:grid-cols-[15rem_1fr] grid-rows-[auto_1fr]">
+      <header class="col-span-full flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-slate-200 sticky top-0 bg-white/90 backdrop-blur z-40">
+        <button data-ref="menu" class="lg:hidden p-1 -ml-1 text-slate-600 hover:text-slate-900" aria-label="Toggle menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <span class="font-extrabold text-lg tracking-tight">Lumen <small data-ref="tagline" class="hidden sm:inline text-slate-400 font-medium text-xs ml-1"></small></span>
         <span class="flex-1"></span>
         <a href="https://github.com/dragones-tech/lumen" target="_blank" rel="noopener"
            title="View on GitHub" aria-label="View on GitHub"
@@ -53,8 +56,9 @@
         </a>
         <button data-ref="lang" class="text-sm px-3 py-1 border border-slate-200 rounded-md hover:bg-slate-50">ES</button>
       </header>
-      <aside data-ref="sidebar" class="border-r border-slate-200 p-3 sticky top-[3.25rem] self-start h-[calc(100vh-3.25rem)] overflow-auto"></aside>
-      <main data-ref="content" class="p-8 w-full"></main>
+      <div data-ref="backdrop" class="hidden fixed inset-0 z-20 bg-black/30 lg:hidden"></div>
+      <aside data-ref="sidebar" class="fixed lg:sticky top-[3.25rem] bottom-0 lg:bottom-auto left-0 z-30 lg:z-auto w-60 lg:w-auto bg-white border-r border-slate-200 p-3 overflow-auto -translate-x-full lg:translate-x-0 transition-transform duration-200 lg:self-start lg:h-[calc(100vh-3.25rem)]"></aside>
+      <main data-ref="content" class="p-4 sm:p-6 lg:p-8 w-full min-w-0"></main>
     </div>
   </template>
 
@@ -77,7 +81,7 @@
     <div>
       <!-- hero -->
       <section class="text-center py-8">
-        <h1 class="text-5xl font-extrabold tracking-tight">Lumen</h1>
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight">Lumen</h1>
         <p data-ref="tagline" class="text-lg text-slate-500 mt-3 max-w-xl mx-auto"></p>
         <div data-ref="chips" class="flex flex-wrap gap-2 justify-center mt-5"></div>
       </section>

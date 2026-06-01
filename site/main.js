@@ -183,6 +183,8 @@ class DocsApp extends View {
     this.sidebar = new Sidebar({ lang: this.lang });
     this.regions.sidebar.show(this.sidebar);
     this.listen(this.ui.lang, 'click', this.toggleLang);
+    this.listen(this.ui.menu, 'click', this.toggleMenu);       // mobile: open/close the sidebar drawer
+    this.listen(this.ui.backdrop, 'click', this.closeMenu);
 
     this.router = new Router()
       .add('/', () => this.go('home'))
@@ -195,11 +197,22 @@ class DocsApp extends View {
   go = (route) => {
     this.currentRoute = route;
     this.sidebar.setActive(route);
+    this.closeMenu(); // collapse the mobile drawer after picking a page
     this.regions.content.show(
       route === 'home'
         ? new Intro({ lang: this.lang })
         : new DocPage({ item: ITEMS[route], lang: this.lang }),
     );
+  };
+
+  // Mobile sidebar drawer. On desktop the `lg:` classes keep it visible regardless.
+  toggleMenu = () => {
+    const closed = this.ui.sidebar.classList.toggle('-translate-x-full');
+    this.ui.backdrop.classList.toggle('hidden', closed);
+  };
+  closeMenu = () => {
+    this.ui.sidebar.classList.add('-translate-x-full');
+    this.ui.backdrop.classList.add('hidden');
   };
 
   toggleLang = () => {
