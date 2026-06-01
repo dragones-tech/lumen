@@ -258,6 +258,15 @@ bus.on('tock', () => console.log('tock'), { signal: ac.signal });
 ac.abort(); // removes BOTH listeners at once
 ```
 
+## App-wide messaging (a shared bus)
+
+This is how independent views, models and collections talk to each other — the role
+Backbone's Radio played, minus the global singleton. Create an `EventEmitter`, share it by
+importing it, and let unrelated views subscribe (each with `this.signal`, so it auto-cleans on
+unmount). Models and Collections already emit events you can subscribe to the same way. A
+running example — a catalog, a cart badge, and toasts coordinating through a shared bus and a
+shared collection — is at [examples/messaging](../../examples/messaging/).
+
 ## Design notes
 
 - Handlers are stored in a `Map<string, Set<Function>>`. The `Set` dedupes the same handler reference and makes `off()` O(1).

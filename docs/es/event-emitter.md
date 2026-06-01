@@ -55,6 +55,15 @@ bus.on('tock', () => console.log('tock'), { signal: ac.signal });
 ac.abort(); // elimina AMBOS listeners de golpe
 ```
 
+## Mensajería de app (un bus compartido)
+
+Así hablan entre sí vistas, modelos y colecciones independientes — el papel que jugaba el
+Radio de Backbone, sin el singleton global. Creas un `EventEmitter`, lo compartes
+importándolo, y dejas que vistas no relacionadas se suscriban (cada una con `this.signal`, así
+se limpia sola al desmontar). Modelos y Colecciones ya emiten eventos a los que te suscribes
+igual. Hay un ejemplo corriendo — un catálogo, un badge de carrito y toasts coordinándose por
+un bus y una colección compartidos — en [examples/messaging](../../examples/messaging/).
+
 ## Notas de diseño
 
 - Los handlers se guardan en un `Map<string, Set<Function>>`. El `Set` deduplica la misma referencia de handler y hace que `off()` sea O(1).

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · messaging between views</title>
+
+  <!-- highlight.js for the Code block (same theme as the docs site). -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 48rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    pre.code { background:#0d1117; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
+    .muted { color:#666; }
+    .bar { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+           border:1px solid #cdd2d8; border-radius:10px; padding:.6rem .9rem; background:#f6f8fa; }
+    .bar h3 { margin:0; font-size:1rem; }
+    .right { display:flex; align-items:center; gap:.6rem; }
+    .badge { background:#111; color:#fff; border-radius:999px; padding:.2rem .7rem; font-size:.9rem; }
+    button { font: inherit; padding:.35rem .8rem; cursor:pointer; border:1px solid #cdd2d8; border-radius:8px; background:#fff; }
+    .product { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+               border:1px solid #e2e6ea; border-radius:8px; padding:.6rem .9rem; margin:.4rem 0; }
+    .product .price { color:#6b7280; }
+    .toasts { position:fixed; bottom:1rem; right:1rem; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.4rem; }
+    .toast { background:#111; color:#fff; padding:.5rem .9rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.2); }
+    .tok-key { color:#ff7b72; }
+  </style>
+</head>
+<body>
+  <h1>messaging · independent views, one event</h1>
+  <p class="muted">A catalog, a cart badge in the header, and toasts — three <b>independent</b> views. The badge subscribes to the <code>cart</code> Collection's structural events; the toasts subscribe to an explicit app <code>bus</code>. Neither knows about the catalog. Every subscription is bound to <code>this.signal</code>, so it cleans up on unmount — no leaks, no global Radio.</p>
+
+  <template id="bar">
+    <div class="bar">
+      <h3>🛍 Lumen Shop</h3>
+      <div class="right">
+        <span class="badge">cart: <b data-ref="count">0</b></span>
+        <button data-ref="clear">clear</button>
+      </div>
+    </div>
+  </template>
+  <template id="catalog">
+    <div data-ref="list"></div>
+  </template>
+  <template id="product">
+    <div class="product">
+      <span data-ref="name"></span>
+      <span class="right"><span class="price" data-ref="price"></span><button data-ref="add">add</button></span>
+    </div>
+  </template>
+  <template id="toasts">
+    <ul class="toasts"></ul>
+  </template>
+
+  <h2>Code</h2>
+  <pre class="code"><code class="language-js">import { View, Model, Collection, CollectionView, EventEmitter } from '../../src/index.js';
+
+// Two explicit, shared channels — imported where needed. No global Radio, no magic.
+const bus  = new EventEmitter();          // app-wide notifications
+const cart = new Collection([], Model);   // shared cart; emits add/remove/reset
+
+class Product extends View {
+  static template = '#product';
+  onMount() {
+    this.ui.name.textContent  = this.props.model.get('name');
+    this.ui.price.textContent = '$' + this.props.model.get('price');
+    this.listen(this.ui.add, 'click', this.add);
+  }
+  add = () => {
+    cart.add(this.props.model);                                   // structural event → badge reacts
+    bus.emit('notify', { text: `Added ${this.props.model.get('name')}` }); // app bus → toasts react
+  };
+}
+
+class CartBadge extends View {
+  static template = '#bar';
+  onMount() {
+    this.update();
+    // Subscribe straight to the Collection — no coupling to the catalog. Auto-cleaned via signal.
+    cart.on('add',    this.update, { signal: this.signal });
+    cart.on('remove', this.update, { signal: this.signal });
+    cart.on('reset',  this.update, { signal: this.signal });
+    this.listen(this.ui.clear, 'click', () => { cart.reset(); bus.emit('notify', { text: 'Cart cleared' }); });
+  }
+  update = () => { this.ui.count.textContent = String(cart.length); };
+}
+
+class Toasts extends View {
+  static template = '#toasts';
+  onMount() { bus.on('notify', this.show, { signal: this.signal }); }   // listens on the app bus
+  show = ({ text }) => {
+    const li = Object.assign(document.createElement('li'), { className: 'toast', textContent: text });
+    this.el.appendChild(li);
+    setTimeout(() => li.remove(), 2000);
+  };
+}</code></pre>
+
+  <h2>Run it</h2>
+  <div id="header"></div>
+  <div id="catalog"></div>
+  <div id="toasts"></div>
+
+  <script type="module">
+    import { View, Model, Collection, CollectionView, EventEmitter } from '../../src/index.js';
+
+    // Two explicit, shared channels — imported where needed. No global Radio, no magic.
+    const bus  = new EventEmitter();          // app-wide notifications
+    const cart = new Collection([], Model);   // shared cart; emits add/remove/reset
+
+    class Product extends View {
+      static template = '#product';
+      onMount() {
+        this.ui.name.textContent  = this.props.model.get('name');
+        this.ui.price.textContent = '$' + this.props.model.get('price');
+        this.listen(this.ui.add, 'click', this.add);
+      }
+      add = () => {
+        cart.add(this.props.model);                                   // structural event → badge reacts
+        bus.emit('notify', { text: `Added ${this.props.model.get('name')}` }); // app bus → toasts react
+      };
+    }
+
+    class Catalog extends CollectionView {
+      static template = '#catalog';
+      static childView = Product;
+      static container = 'list';
+    }
+
+    class CartBadge extends View {
+      static template = '#bar';
+      onMount() {
+        this.update();
+        // Subscribe straight to the Collection — no coupling to the catalog. Auto-cleaned via signal.
+        cart.on('add',    this.update, { signal: this.signal });
+        cart.on('remove', this.update, { signal: this.signal });
+        cart.on('reset',  this.update, { signal: this.signal });
+        this.listen(this.ui.clear, 'click', () => { cart.reset(); bus.emit('notify', { text: 'Cart cleared' }); });
+      }
+      update = () => { this.ui.count.textContent = String(cart.length); };
+    }
+
+    class Toasts extends View {
+      static template = '#toasts';
+      onMount() { bus.on('notify', this.show, { signal: this.signal }); }   // listens on the app bus
+      show = ({ text }) => {
+        const li = Object.assign(document.createElement('li'), { className: 'toast', textContent: text });
+        this.el.appendChild(li);
+        setTimeout(() => li.remove(), 2000);
+      };
+    }
+
+    const products = [
+      { id: 1, name: 'Coffee mug', price: 12 },
+      { id: 2, name: 'Notebook', price: 8 },
+      { id: 3, name: 'Sticker pack', price: 4 },
+    ];
+
+    new CartBadge().mount(document.querySelector('#header'));
+    new Catalog({ collection: new Collection(products, Model) }).mount(document.querySelector('#catalog'));
+    new Toasts().mount(document.querySelector('#toasts'));
+  </script>
+
+  <!-- colorize the Code block above -->
+  <script>hljs.highlightAll();</script>
+</body>
+</html>
