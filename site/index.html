@@ -68,8 +68,8 @@
 
   <template id="doc">
     <div data-ref="layout">
-      <div data-ref="body" class="prose prose-slate max-w-none prose-code:before:content-none prose-code:after:content-none prose-pre:p-0 prose-pre:bg-[#0d1117]">Loading…</div>
-      <div data-ref="exWrap" class="lg:sticky lg:top-[4.5rem]">
+      <div data-ref="body" class="min-w-0 prose prose-slate max-w-none prose-code:before:content-none prose-code:after:content-none prose-pre:p-0 prose-pre:bg-[#0d1117]">Loading…</div>
+      <div data-ref="exWrap" class="min-w-0 lg:sticky lg:top-[4.5rem]">
         <div data-ref="exLabel" class="text-xs uppercase tracking-wider text-slate-400 mb-2">Live example</div>
         <iframe data-ref="frame" title="example" class="w-full h-[26rem] lg:h-[calc(100vh-7rem)] border border-slate-200 rounded-xl bg-white"></iframe>
         <a data-ref="open" target="_blank" class="inline-block mt-2 text-sm text-blue-600 hover:underline">open in new tab ↗</a>
@@ -90,8 +90,8 @@
       <section class="mt-2">
         <div data-ref="demoLabel" class="text-xs uppercase tracking-wider text-slate-400 mb-2">A complete app — running</div>
         <div class="grid lg:grid-cols-2 gap-5 items-start">
-          <div data-ref="demo"></div>
-          <pre class="rounded-xl bg-[#0d1117] overflow-auto text-[13px] leading-relaxed"><code class="language-js" data-ref="code"></code></pre>
+          <div data-ref="demo" class="min-w-0"></div>
+          <pre class="min-w-0 rounded-xl bg-[#0d1117] overflow-auto text-[13px] leading-relaxed"><code class="language-js" data-ref="code"></code></pre>
         </div>
       </section>
 
