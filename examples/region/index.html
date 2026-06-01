@@ -24,7 +24,11 @@
 </head>
 <body>
   <h1>Region · a nested layout</h1>
-  <p class="muted">An <code>AppLayout</code> View declares <code>static regions</code> (sidebar, main). The sidebar swaps the main region between screens. <code>Dashboard</code> has its OWN nested region — open the console: navigating away tears it down in cascade.</p>
+  <p class="muted">An <code>AppLayout</code> View declares <code>static regions</code> (sidebar, main). The sidebar swaps the main region between screens. <code>Dashboard</code> has its OWN nested region — open the console: navigating away tears it down in cascade. Toggle <b>native View Transitions</b> below: on, the browser crossfades (JS <code>animateIn/Out</code> skipped); off, the views' <code>slideIn/slideOut</code> run. Falls back automatically where unsupported.</p>
+
+  <label style="display:block; margin:.4rem 0 1rem;">
+    <input type="checkbox" data-ref="vt" id="vt" checked /> use native View Transitions (when supported)
+  </label>
 
   <template id="app-layout">
     <div class="app">
@@ -59,7 +63,10 @@
     <span class="tok-key">this</span>.regions.sidebar.<span class="tok-fn">show</span>(<span class="tok-key">new</span> <span class="tok-fn">Menu</span>({ onGo: <span class="tok-key">this</span>.go }));
     <span class="tok-key">this</span>.<span class="tok-fn">go</span>(<span class="tok-str">'home'</span>);
   }
-  go = (name) => <span class="tok-key">this</span>.regions.main.<span class="tok-fn">show</span>(name === <span class="tok-str">'dash'</span> ? <span class="tok-key">new</span> <span class="tok-fn">Dashboard</span>() : <span class="tok-key">new</span> <span class="tok-fn">Home</span>());
+  go = (name) => <span class="tok-key">this</span>.regions.main.<span class="tok-fn">show</span>(
+    name === <span class="tok-str">'dash'</span> ? <span class="tok-key">new</span> <span class="tok-fn">Dashboard</span>() : <span class="tok-key">new</span> <span class="tok-fn">Home</span>(),
+    { transition: vt.checked },   <span class="tok-com">// native crossfade when supported, else JS animation</span>
+  );
 }
 
 <span class="tok-key">class</span> <span class="tok-fn">Dashboard</span> <span class="tok-key">extends</span> View {
@@ -114,6 +121,8 @@
       animateOut() { return slideOut(this.el); }
     }
 
+    const vt = document.querySelector('#vt');
+
     class AppLayout extends View {
       static template = '#app-layout';
       static regions = { sidebar: 'sidebar', main: 'main' };  // auto-created + auto-cleaned
@@ -121,7 +130,10 @@
         this.regions.sidebar.show(new Menu({ onGo: this.go }));
         this.go('home');
       }
-      go = (name) => this.regions.main.show(name === 'dash' ? new Dashboard() : new Home());
+      go = (name) => this.regions.main.show(
+        name === 'dash' ? new Dashboard() : new Home(),
+        { transition: vt.checked },   // native crossfade when supported, else JS animation
+      );
     }
 
     new AppLayout().mount(document.querySelector('#app'));

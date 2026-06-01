@@ -177,14 +177,16 @@ export class View {
   /**
    * Insert this view into a parent and run the mount lifecycle.
    * @param {ParentNode} parent - Where to append the view's root element.
-   * @returns {Promise<this>} Resolves once `animateIn()` has finished.
+   * @param {{ animate?: boolean }} [options] - Pass `animate: false` to skip `animateIn()`
+   *   (used by `Region`'s View-Transition path, where the browser plays the crossfade instead).
+   * @returns {Promise<this>} Resolves once `animateIn()` has finished (immediately if skipped).
    */
-  async mount(parent) {
+  async mount(parent, options) {
     this.build();
     parent.appendChild(/** @type {HTMLElement} */ (this.el));
     this._mounted = true;
     this.onMount();
-    await this.animateIn();
+    if (options?.animate !== false) await this.animateIn();
     return this;
   }
 
@@ -216,13 +218,16 @@ export class View {
    * Play the leave animation, tear down children, clean up listeners, and remove the
    * element from the DOM — in that order, so the exit animation always completes first.
    * After this, the view can be mounted again (a fresh `signal` is created).
+   * @param {{ animate?: boolean }} [options] - Pass `animate: false` to skip `animateOut()`
+   *   (used by `Region`'s View-Transition path). Propagates to children and regions, so the
+   *   whole cascade tears down without JS animations.
    * @returns {Promise<void>}
    */
-  async unmount() {
+  async unmount(options) {
     if (!this.el) return;
-    await this.animateOut();
-    for (const child of [...this.children]) await child.unmount();
-    for (const region of Object.values(this.regions)) await region.empty();
+    if (options?.animate !== false) await this.animateOut();
+    for (const child of [...this.children]) await child.unmount(options);
+    for (const region of Object.values(this.regions)) await region.empty(options);
     this.children.clear();
     this.onUnmount();
     this._ac.abort(); // fire signal → every listener bound to it is removed
@@ -242,5 +247,27 @@ export class View {
    */
   listen(target, type, handler, options) {
     target.addEventListener(type, handler, { ...options, signal: this.signal });
+  }
+
+  /**
+   * Observe an element's visibility with an `IntersectionObserver`, automatically
+   * disconnected on `unmount()` (it is bound to this view's `signal`). Call inside
+   * `onMount()`. The callback gets the standard `(entries, observer)` arguments, so a
+   * one-shot reveal is just `observer.unobserve(target)` after the first intersection.
+   *
+   * This is to `IntersectionObserver` what {@link View#listen} is to `addEventListener`:
+   * the observer has no `signal` option of its own, so the view bridges it to the mounted
+   * lifetime — no manual `disconnect()` in `onUnmount`, no leak.
+   *
+   * @param {Element} target - The element to watch (often `this.el`).
+   * @param {IntersectionObserverCallback} callback - Runs when `target`'s intersection changes.
+   * @param {IntersectionObserverInit} [options] - `root`, `rootMargin`, `threshold`.
+   * @returns {IntersectionObserver} The observer, already observing `target`.
+   */
+  observe(target, callback, options) {
+    const io = new IntersectionObserver(callback, options);
+    io.observe(target);
+    this.signal.addEventListener('abort', () => io.disconnect(), { once: true });
+    return io;
   }
 }

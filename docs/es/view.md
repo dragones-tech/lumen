@@ -38,6 +38,9 @@ Cablea listeners en `onMount()` (se re-cablean al re-montar); haz la configuraci
 | `addChild(child, parent?)` | Monta un hijo (padre por defecto: `this.el`) y lo registra para desmontaje en cascada. |
 | `removeChild(child)` | Desregistra y desmonta un hijo. |
 | `listen(target, type, handler, options?)` | `addEventListener` atado a `signal` (se quita solo al desmontar). |
+| `observe(target, callback, options?)` | `IntersectionObserver` atado a `signal` (se desconecta solo al desmontar). |
+| `mount(parent, { animate? })` | `animate: false` salta `animateIn()` (lo usa la vía de View-Transition de `Region`). |
+| `unmount({ animate? })` | `animate: false` salta `animateOut()`; se propaga por la cascada. |
 | `onCreate / onMount / onUnmount` | Hooks de ciclo de vida (sobreescribibles). |
 | `animateIn / animateOut` | Hooks de transición; devuelven una Promesa (sobreescribibles). |
 
@@ -119,6 +122,37 @@ Método en el prototipo; el arrow conserva `this`, a costa de una función inlin
 > Nunca pases una referencia cruda y sin ligar (`this.listen(el, 'input', this.onNameInput)`) — el `this` se pierde dentro.
 
 Los ejemplos usan los estilos 1 y 3; ninguno es "el" correcto.
+
+## Observar visibilidad (`observe`)
+
+`observe()` es a `IntersectionObserver` lo que `listen()` a `addEventListener`: cablea el
+observer nativo y lo desconecta solo al `unmount()` (vía `signal`). El observer no tiene una
+opción `signal` propia, así que la vista hace el puente por ti — sin `disconnect()` manual en
+`onUnmount`, sin fugas.
+
+Úsalo para comportamiento *guiado por el viewport*: revelar al hacer scroll, carga perezosa,
+centinelas de scroll infinito. Es una tercera fuente de disparo junto al modelo (datos) y al
+ciclo de vida (mount/unmount) — y compone con ambas.
+
+```js
+class Card extends View {
+  static template = '#card';
+  onMount() {
+    // Revela una sola vez, la primera vez que la tarjeta entra en pantalla.
+    this.observe(this.el, ([entry], io) => {
+      if (!entry.isIntersecting) return;
+      this.animateIn();          // o fadeIn(this.el), o this.props.model.set('seen', true)
+      io.unobserve(this.el);     // una sola vez: no volver a disparar
+    }, { threshold: 0.2 });
+  }
+  animateIn() { return slideIn(this.el); }
+}
+```
+
+El callback recibe los argumentos estándar `(entries, observer)`, así que `threshold`,
+`rootMargin` y `observer.unobserve()` funcionan exactamente como en la plataforma. Sin magia,
+sin escáner global del documento — cada vista observa solo lo que pide. Ver el
+[ejemplo en vivo](../../examples/observe/).
 
 ## Regiones (layouts)
 
