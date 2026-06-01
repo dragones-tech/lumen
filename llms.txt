@@ -23,6 +23,7 @@ Lumen is an OOP UI framework in the lineage of Backbone.js and Marionette.js, re
 - [element](https://dragones-tech.github.io/lumen/docs/en/element.md): defineElement(tag, ViewClass) — use a View as a Custom Element.
 
 ## Guides
+- [structure](https://dragones-tech.github.io/lumen/docs/en/structure.md): Project structure — one View per file, where templates live, server partials vs static.
 - [styling](https://dragones-tech.github.io/lumen/docs/en/styling.md): Style-agnostic — plain CSS, native @scope, or Tailwind.
 - [deployment](https://dragones-tech.github.io/lumen/docs/en/deployment.md): HTTP/2, import maps, modulepreload — why no bundler is needed.
 - [credits](https://dragones-tech.github.io/lumen/docs/en/credits.md): A respectful homage to Backbone.js and Marionette.js.

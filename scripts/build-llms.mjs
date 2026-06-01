@@ -25,6 +25,7 @@ const START = [
 ];
 
 const GUIDES = [
+  ['structure', 'Project structure — one View per file, where templates live, server partials vs static.'],
   ['styling', 'Style-agnostic — plain CSS, native @scope, or Tailwind.'],
   ['deployment', 'HTTP/2, import maps, modulepreload — why no bundler is needed.'],
   ['credits', 'A respectful homage to Backbone.js and Marionette.js.'],

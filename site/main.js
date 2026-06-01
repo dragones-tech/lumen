@@ -22,6 +22,7 @@ const NAV = [
   {
     label: { en: 'Guides', es: 'Guías' },
     items: [
+      { id: 'structure', doc: 'structure' },
       { id: 'styling', doc: 'styling', example: 'tailwind' },
       { id: 'deployment', doc: 'deployment' },
       { id: 'llms', doc: 'llms' },
