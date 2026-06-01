@@ -52,7 +52,7 @@ archivo que editas.
 
 **FastAPI / Jinja**
 
-```jinja
+```django
 {# templates/index.html #}
 {% include "_header.html" %}     {# cada uno trae su propio <template id> #}
 {% include "_clientes.html" %}

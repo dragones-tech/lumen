@@ -1440,7 +1440,7 @@ what `clone('#id')` needs. The assembled page is **generated output**, not a fil
 
 **FastAPI / Jinja**
 
-```jinja
+```django
 {# templates/index.html #}
 {% include "_header.html" %}    {# each holds its own <template id> #}
 {% include "_customers.html" %}
