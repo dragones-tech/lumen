@@ -154,7 +154,6 @@ class DocPage extends View {
   /** Build one example block: a labelled live iframe + an open-in-new-tab link. */
   exBlock(ex, lang, count) {
     const wrap = document.createElement('div');
-    const h = count > 1 ? 'h-[36rem]' : 'h-[26rem] lg:h-[calc(100vh-9rem)]';
     if (count > 1) {
       const cap = document.createElement('div');
       cap.className = 'text-xs text-slate-500 mb-1';
@@ -164,7 +163,26 @@ class DocPage extends View {
     const frame = document.createElement('iframe');
     frame.src = `../examples/${ex}/`;
     frame.title = ex;
-    frame.className = `w-full ${h} border border-slate-200 rounded-xl bg-white`;
+    frame.className = 'w-full border border-slate-200 rounded-xl bg-white';
+    if (count > 1) {
+      // stacked examples (same-origin): size each iframe to its content, refit if it reflows.
+      frame.style.height = '36rem'; // fallback until measured
+      frame.addEventListener('load', () => {
+        const fit = () => {
+          try {
+            const d = frame.contentDocument;
+            if (d) frame.style.height = d.documentElement.scrollHeight + 2 + 'px'; // +2 = border
+          } catch {}
+        };
+        fit();
+        try {
+          const d = frame.contentDocument;
+          if (d) new ResizeObserver(fit).observe(d.documentElement);
+        } catch {}
+      });
+    } else {
+      frame.classList.add('h-[26rem]', 'lg:h-[calc(100vh-9rem)]'); // single: tall + sticky
+    }
     const open = document.createElement('a');
     open.href = `../examples/${ex}/`;
     open.target = '_blank';
