@@ -23,7 +23,7 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 | Member | Description |
 |---|---|
 | `new Collection(items?, Model?)` | Wrap plain data with `Model` (a subclass), or pass `Model` instances. |
-| `length` / `at(i)` / `get(id)` | Size, index access, lookup by `id` attribute. |
+| `length` / `at(i)` / `get(id)` | Size, index access, **O(1)** lookup by `id` attribute (indexed). |
 | `add(item)` | Append (wrapping data). Emits `add`. Returns the model. |
 | `remove(model)` | Remove. Emits `remove`. No-op if absent. |
 | `reset(items?)` | Replace all. Emits `reset`. |
@@ -100,3 +100,4 @@ const todos = new Collection([], Todo);
 - Built on `EventEmitter`; subscriptions accept an `AbortSignal`, so a view can subscribe with `this.signal` and clean up on unmount.
 - `add`/`remove` carry the `index`, which `CollectionView` will use to insert or remove a single child view without rebuilding the list.
 - `change` bubbling uses one shared handler reference subscribed to each model, so the collection drops a removed model's subscription with a single `off` — no per-model bookkeeping, no leaks.
+- `get(id)` is **O(1)**: the collection keeps an `id → model` index in sync with `add`/`remove`/`reset` (first-wins, matching `find` order) and rebuilds it if a model changes its own `id`. Models without an `id` simply aren't indexed.

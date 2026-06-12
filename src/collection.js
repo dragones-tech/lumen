@@ -31,24 +31,54 @@ export class Collection {
     this._Model = model ?? /** @type {any} */ (Model);
     /** @type {M[]} */
     this.models = [];
+    /**
+     * O(1) lookup index, `id → model`, kept in sync with `models`. First-wins, mirroring the
+     * order `find` would return; rebuilt if a model changes its own `id`.
+     * @private @type {Map<any, M>}
+     */
+    this._byId = new Map();
     /** @private */
     this._events = new EventEmitter();
     for (const item of items) {
       const model = this._wrap(item);
       this.models.push(model);
+      this._index(model);
       this._bind(model);
     }
   }
 
   /**
    * Re-emit a model's `change` as a collection-level `change`. One shared reference across all
-   * models, so `_unbind` can drop it from a single model with `off`.
+   * models, so `_unbind` can drop it from a single model with `off`. If the model's own `id`
+   * changed, the index would go stale, so rebuild it first.
    * @private
    * @param {{ keys: string[], model: M }} payload
    */
   _onModelChange = (payload) => {
+    if (payload.keys.includes('id')) this._reindex();
     this._events.emit('change', { model: payload.model, keys: payload.keys, collection: this });
   };
+
+  /** Add a model to the id index (first-wins, so it matches `find` order). @private @param {M} model */
+  _index(model) {
+    const id = model.get('id');
+    if (id != null && !this._byId.has(id)) this._byId.set(id, model);
+  }
+
+  /** Drop a model from the id index, promoting any remaining model with the same id. @private @param {M} model */
+  _deindex(model) {
+    const id = model.get('id');
+    if (id == null || this._byId.get(id) !== model) return;
+    this._byId.delete(id);
+    const replacement = this.models.find((m) => m.get('id') === id);
+    if (replacement) this._byId.set(id, replacement);
+  }
+
+  /** Rebuild the whole id index from `models` (used after an `id` mutation). @private */
+  _reindex() {
+    this._byId.clear();
+    for (const model of this.models) this._index(model);
+  }
 
   /** @private @param {M} model */
   _bind(model) {
@@ -84,12 +114,13 @@ export class Collection {
   }
 
   /**
-   * Find a model by its `id` attribute.
+   * Find a model by its `id` attribute — **O(1)** via an internal index, not a scan. Returns
+   * `undefined` for an unknown id. (Models without an `id` are simply not indexed.)
    * @param {any} id
    * @returns {M | undefined}
    */
   get(id) {
-    return this.models.find((m) => m.get('id') === id);
+    return this._byId.get(id);
   }
 
   // ---- Mutations (announced) ----
@@ -102,6 +133,7 @@ export class Collection {
   add(item) {
     const model = this._wrap(item);
     const index = this.models.push(model) - 1;
+    this._index(model);
     this._bind(model);
     this._events.emit('add', { model, index, collection: this });
     return model;
@@ -116,6 +148,7 @@ export class Collection {
     const index = this.models.indexOf(model);
     if (index === -1) return undefined;
     this.models.splice(index, 1);
+    this._deindex(model);
     this._unbind(model);
     this._events.emit('remove', { model, index, collection: this });
     return model;
@@ -129,6 +162,7 @@ export class Collection {
   reset(items = []) {
     for (const model of this.models) this._unbind(model);
     this.models = items.map((item) => this._wrap(item));
+    this._reindex();
     for (const model of this.models) this._bind(model);
     this._events.emit('reset', { models: this.models, collection: this });
     return this;

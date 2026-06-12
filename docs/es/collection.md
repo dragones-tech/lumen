@@ -23,7 +23,7 @@ Una lista ordenada de `Model`s con eventos estructurales. Se empareja con `Colle
 | Miembro | Descripción |
 |---|---|
 | `new Collection(items?, Model?)` | Envuelve datos planos con `Model` (una subclase), o pasa instancias de `Model`. |
-| `length` / `at(i)` / `get(id)` | Tamaño, acceso por índice, búsqueda por atributo `id`. |
+| `length` / `at(i)` / `get(id)` | Tamaño, acceso por índice, búsqueda **O(1)** por atributo `id` (indexada). |
 | `add(item)` | Añade al final (envolviendo datos). Emite `add`. Devuelve el modelo. |
 | `remove(model)` | Quita. Emite `remove`. No-op si no está. |
 | `reset(items?)` | Reemplaza todo. Emite `reset`. |
@@ -100,3 +100,4 @@ const todos = new Collection([], Todo);
 - Construido sobre `EventEmitter`; las suscripciones aceptan un `AbortSignal`, así una vista puede suscribirse con `this.signal` y limpiarse al desmontar.
 - `add`/`remove` llevan el `index`, que `CollectionView` usará para insertar o quitar una sola vista hija sin reconstruir la lista.
 - El bubbling de `change` usa una única referencia de handler suscrita a cada modelo, así la colección suelta la suscripción de un modelo removido con un solo `off` — sin bookkeeping por modelo, sin fugas.
+- `get(id)` es **O(1)**: la colección mantiene un índice `id → model` sincronizado con `add`/`remove`/`reset` (first-wins, igual que el orden de `find`) y lo reconstruye si un modelo cambia su propio `id`. Los modelos sin `id` simplemente no se indexan.
