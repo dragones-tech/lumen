@@ -27,6 +27,11 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 | `on(event, handler, { signal? })` | Subscribe. Returns an unsubscribe function. |
 | `once(event, handler, { signal? })` | Subscribe for a single emission. |
 | `off(event, handler)` | Unsubscribe. |
+| `isDirty(key?)` | Whether attributes differ from the last committed baseline (unsaved edits). With a `key`, checks just that attribute. |
+| `changedKeys()` | The attribute names that differ from the baseline. |
+| `changes()` | A `{ key: { value, baseline } }` map of every changed attribute (`{}` = clean). |
+| `commit()` | Adopt the current attributes as the new clean baseline (call after a save). Returns `this`. |
+| `revert(key?)` | Discard unsaved edits back to the baseline — fires `change` events. With a `key`, reverts just that attribute. Returns `this`. |
 | `validate()` | Validate the attributes against `static rules`. Returns errors keyed by field (`{}` = valid). |
 | `isValid()` | Whether the attributes pass validation. |
 | `toJSON()` | A shallow copy of the attributes. |
@@ -88,6 +93,33 @@ class User extends Model {
 }
 new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
 ```
+
+## Dirty tracking — unsaved edits
+
+A model remembers a **baseline**: its last committed clean state. Editing makes it *dirty*;
+`commit()` adopts the current values as the new baseline; `revert()` throws the edits away.
+Nothing is bookkept inside `set` — dirtiness is derived by comparison, so it stays honest.
+
+```js
+const draft = new Model({ title: 'Untitled', body: '' });
+
+draft.isDirty();            // false — matches baseline
+draft.set('title', 'Lumen 1.0');
+draft.isDirty();            // true
+draft.isDirty('body');     // false — only `title` changed
+draft.changes();           // { title: { value: 'Lumen 1.0', baseline: 'Untitled' } }
+
+draft.revert();            // restore baseline — fires change:title, so views update surgically
+draft.isDirty();           // false
+
+// After a successful save, make the current values the new clean baseline:
+await api.save(draft.toJSON());
+draft.commit();            // isDirty() === false again, no events emitted
+```
+
+This is exactly what a form needs: enable the **Save** button only `while (model.isDirty())`,
+wire **Discard** to `revert()`, and `commit()` once the server confirms. Because `revert()`
+goes through `set`, every observing view reacts through the same `change` path as any edit.
 
 ## Design notes
 

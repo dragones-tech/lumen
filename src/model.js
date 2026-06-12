@@ -35,6 +35,12 @@ export class Model {
   constructor(data) {
     /** @type {Data} */
     this.data = { ...data };
+    /**
+     * The last committed snapshot — the baseline that `isDirty`/`changes`/`revert`
+     * compare against. Starts equal to the initial data, advances on `commit()`.
+     * @private @type {Data}
+     */
+    this._baseline = { ...data };
     /** @private */
     this._events = new EventEmitter();
   }
@@ -77,6 +83,76 @@ export class Model {
     }
     if (changed.length) this._events.emit('change', { keys: changed, model: this });
     return this;
+  }
+
+  // ---- Dirty tracking (against the committed baseline) ----
+
+  /**
+   * Whether attributes differ from the last committed baseline — i.e. there are unsaved
+   * edits. The baseline starts as the initial data and advances on {@link commit}. With a
+   * `key`, reports only that attribute. Comparison is strict (`!==`), like `set`.
+   *
+   * Derived purely by comparison — nothing is bookkept in `set`, so it stays honest even
+   * if you reach past the API and assign to `model.data.x` directly.
+   *
+   * @param {keyof Data} [key] - Limit the check to one attribute.
+   * @returns {boolean}
+   */
+  isDirty(key) {
+    if (key !== undefined) return this.data[key] !== this._baseline[key];
+    return this.changedKeys().length > 0;
+  }
+
+  /**
+   * The attribute names that differ from the committed baseline.
+   * @returns {(keyof Data & string)[]}
+   */
+  changedKeys() {
+    const keys = new Set([...Object.keys(this.data), ...Object.keys(this._baseline)]);
+    return /** @type {(keyof Data & string)[]} */ (
+      [...keys].filter((k) => /** @type {any} */ (this.data)[k] !== /** @type {any} */ (this._baseline)[k])
+    );
+  }
+
+  /**
+   * A map of every changed attribute to its `{ value, baseline }` pair — empty `{}` when
+   * the model is clean. Handy for "you have unsaved changes" UI or building a PATCH body.
+   * @returns {Record<string, { value: any, baseline: any }>}
+   */
+  changes() {
+    /** @type {Record<string, { value: any, baseline: any }>} */
+    const out = {};
+    for (const k of this.changedKeys()) {
+      out[k] = { value: /** @type {any} */ (this.data)[k], baseline: /** @type {any} */ (this._baseline)[k] };
+    }
+    return out;
+  }
+
+  /**
+   * Adopt the current attributes as the new clean baseline — call after a successful save,
+   * so the model reports `isDirty() === false` until the next edit. Does not touch `data`
+   * and emits nothing (no observable value changed). Returns `this`.
+   * @returns {this}
+   */
+  commit() {
+    this._baseline = { ...this.data };
+    return this;
+  }
+
+  /**
+   * Discard unsaved edits, restoring attribute(s) to the committed baseline. Goes through
+   * `set`, so the usual `change:<key>` / `change` events fire for whatever reverts — views
+   * update surgically, exactly as they would for any other change. With a `key`, reverts
+   * just that attribute. Returns `this`.
+   * @param {keyof Data} [key] - Limit the revert to one attribute.
+   * @returns {this}
+   */
+  revert(key) {
+    if (key !== undefined) return this.set(key, this._baseline[key]);
+    /** @type {Partial<Data>} */
+    const patch = {};
+    for (const k of this.changedKeys()) patch[k] = this._baseline[k];
+    return this.set(patch);
   }
 
   /**

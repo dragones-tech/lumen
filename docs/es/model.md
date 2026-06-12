@@ -27,6 +27,11 @@ Datos observables de una sola entidad (un usuario, un todo, un ajuste). Se empar
 | `on(event, handler, { signal? })` | Suscribe. Devuelve una función para desuscribirse. |
 | `once(event, handler, { signal? })` | Suscribe para una sola emisión. |
 | `off(event, handler)` | Desuscribe. |
+| `isDirty(key?)` | Si los atributos difieren de la última línea base confirmada (ediciones sin guardar). Con `key`, comprueba solo ese atributo. |
+| `changedKeys()` | Los nombres de atributos que difieren de la línea base. |
+| `changes()` | Un mapa `{ clave: { value, baseline } }` de cada atributo cambiado (`{}` = limpio). |
+| `commit()` | Adopta los atributos actuales como la nueva línea base limpia (llámalo tras guardar). Devuelve `this`. |
+| `revert(key?)` | Descarta ediciones sin guardar volviendo a la línea base — dispara eventos `change`. Con `key`, revierte solo ese atributo. Devuelve `this`. |
 | `validate()` | Valida los atributos contra `static rules`. Devuelve errores por campo (`{}` = válido). |
 | `isValid()` | Si los atributos pasan la validación. |
 | `toJSON()` | Una copia superficial de los atributos. |
@@ -88,6 +93,35 @@ class User extends Model {
 }
 new User({ email: 'mal' }).validate(); // { email: ['must be a valid email'] }
 ```
+
+## Seguimiento de cambios — ediciones sin guardar
+
+Un modelo recuerda una **línea base**: su último estado limpio confirmado. Editar lo vuelve
+*sucio*; `commit()` adopta los valores actuales como nueva línea base; `revert()` descarta las
+ediciones. Nada se contabiliza dentro de `set` — la suciedad se deriva por comparación, así que
+se mantiene honesta.
+
+```js
+const draft = new Model({ title: 'Sin título', body: '' });
+
+draft.isDirty();            // false — coincide con la línea base
+draft.set('title', 'Lumen 1.0');
+draft.isDirty();            // true
+draft.isDirty('body');     // false — solo cambió `title`
+draft.changes();           // { title: { value: 'Lumen 1.0', baseline: 'Sin título' } }
+
+draft.revert();            // restaura la línea base — dispara change:title, las vistas se actualizan quirúrgicamente
+draft.isDirty();           // false
+
+// Tras un guardado exitoso, haz de los valores actuales la nueva línea base limpia:
+await api.save(draft.toJSON());
+draft.commit();            // isDirty() === false de nuevo, sin emitir eventos
+```
+
+Esto es justo lo que un formulario necesita: habilita el botón **Guardar** solo
+`while (model.isDirty())`, conecta **Descartar** a `revert()`, y `commit()` cuando el servidor
+confirme. Como `revert()` pasa por `set`, cada vista observadora reacciona por la misma ruta
+`change` que cualquier edición.
 
 ## Notas de diseño
 
