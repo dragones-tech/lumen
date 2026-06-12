@@ -18,11 +18,9 @@
 <body>
   <h1>Particles · the continuous ticker</h1>
   <p class="muted">
-    The bar chart used the loop's <strong>on-demand</strong> half (redraw when data changes, then
-    idle). Particles exercise the other half: an <code>Emitter</code> (a <code>Node2D</code>) drives
-    motion in <code>update(dt)</code> and registers a <strong>continuous animator</strong>, so the
-    stage ticks ~60fps while it plays — and goes fully idle the moment you pause. Click the canvas
-    to fire a burst.
+    An <code>Emitter</code> (a <code>Node2D</code>) drives motion in <code>update(dt)</code> and
+    registers a <strong>continuous animator</strong> — the stage ticks ~60fps while it plays, and
+    goes fully idle the moment you pause. Click the canvas to fire a burst.
   </p>
 
   <div class="controls">

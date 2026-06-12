@@ -24,12 +24,9 @@
 <body>
   <h1>Canvas spike · one state, two projections</h1>
   <p class="muted">
-    One <code>Collection</code> of quarters drives <strong>both</strong> a canvas chart (a
-    <code>CanvasLayer</code> of <code>Node2D</code> bars) <strong>and</strong> a DOM legend (a
-    <code>CollectionView</code>). Edit the data once — both react. Bars tween via
-    <code>node.animate()</code> on the stage loop; the legend updates surgically. <strong>Click a
-    bar</strong> to bump its value (canvas hit-testing → the shared model → both projections). There
-    is nothing to sync, because there is only one source of truth.
+    One <code>Collection</code> drives a canvas chart <strong>and</strong> a DOM legend at once —
+    edit once, both react. <strong>Click a bar</strong> to bump its value (canvas hit-test → shared
+    model → both projections). Nothing to sync: one source of truth.
   </p>
 
   <div class="controls">

@@ -154,7 +154,7 @@ class DocPage extends View {
   /** Build one example block: a labelled live iframe + an open-in-new-tab link. */
   exBlock(ex, lang, count) {
     const wrap = document.createElement('div');
-    const h = count > 1 ? 'h-[24rem]' : 'h-[26rem] lg:h-[calc(100vh-9rem)]';
+    const h = count > 1 ? 'h-[36rem]' : 'h-[26rem] lg:h-[calc(100vh-9rem)]';
     if (count > 1) {
       const cap = document.createElement('div');
       cap.className = 'text-xs text-slate-500 mb-1';
