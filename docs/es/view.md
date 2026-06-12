@@ -199,21 +199,33 @@ Dos patrones, ambos explícitos:
 
 ## Comportamiento de render compartido
 
-Cuando varias vistas comparten el *mismo* comportamiento de presentación — la misma animación de
-entrada/salida, el mismo esqueleto de carga — no lo copies en cada una. Como una vista es una
-clase, factoriza el comportamiento compartido en una subclase base de `View` y extiéndela:
+`animateIn()`/`animateOut()` son **stubs vacíos (no-op)** en el `View` base — existen solo como
+puntos de override, así que una subclase que los define no pelea contra un default, solo lo
+rellena.
+
+Cuando varias vistas comparten el *mismo* comportamiento — el mismo cableado del botón cerrar, un
+esqueleto de carga, una animación de salida común — no lo copies en cada una. Como una vista es
+una clase, factoriza el comportamiento compartido en una subclase base y extiéndela:
 
 ```js
-class FadeView extends View {            // compartido una vez
-  animateIn()  { return fadeIn(this.el); }
-  animateOut() { return fadeOut(this.el); }
+class Dismissable extends View {
+  onMount() {
+    this.listen(this.ui.close, 'click', () => this.props.onDismiss?.(this)); // cableado compartido
+  }
+  animateOut() { return fadeOut(this.el); }   // un default compartido; una subclase puede sobreescribir
 }
 
-class TaskItem extends FadeView { static template = '#task-item'; /* … */ }
-class Toast    extends FadeView { static template = '#toast'; }
+class Toast  extends Dismissable { static template = '#toast'; }
+class Banner extends Dismissable { static template = '#banner'; }
 ```
 
-Si la animación depende del *estado*, el modelo expone la intención y la vista la traduce:
+Una clase base vale la pena cuando el *cuerpo* se repite idéntico. Sobreescribir solo
+`animateIn`/`animateOut` no es "compartir" — es el gancho por vista que toda vista ya tiene; la
+ganancia real es el `onMount` compartido (y un default de animación sensato) viviendo en un solo
+lugar. (Una subclase que necesite su propio `onMount` debe llamar a `super.onMount()` para
+conservar el cableado heredado.)
+
+Si el comportamiento depende del *estado*, el modelo expone la intención y la vista la traduce:
 
 ```js
 animateOut() { return this.props.model.isOverdue ? shake(this.el) : fadeOut(this.el); }

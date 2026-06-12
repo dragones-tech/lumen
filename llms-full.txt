@@ -619,21 +619,31 @@ Two patterns, both explicit:
 
 ## Shared render behaviour
 
-When several views share the *same* presentation behaviour — the same enter/exit animation,
-the same loading skeleton — don't copy it into each one. Because a view is a class, factor the
-shared behaviour into a base `View` subclass and extend it:
+`animateIn()`/`animateOut()` are **empty no-op stubs** on the base `View` — they exist only as
+override points, so a subclass that defines them isn't fighting a default, just filling it in.
+
+When several views share the *same* behaviour — the same close-button wiring, a loading
+skeleton, a common exit animation — don't copy it into each one. Because a view is a class,
+factor the shared behaviour into a base subclass and extend it:
 
 ```js
-class FadeView extends View {            // shared once
-  animateIn()  { return fadeIn(this.el); }
-  animateOut() { return fadeOut(this.el); }
+class Dismissable extends View {
+  onMount() {
+    this.listen(this.ui.close, 'click', () => this.props.onDismiss?.(this)); // shared wiring
+  }
+  animateOut() { return fadeOut(this.el); }   // a shared default; a subclass may still override
 }
 
-class TaskItem extends FadeView { static template = '#task-item'; /* … */ }
-class Toast    extends FadeView { static template = '#toast'; }
+class Toast  extends Dismissable { static template = '#toast'; }
+class Banner extends Dismissable { static template = '#banner'; }
 ```
 
-If the animation depends on *state*, the model exposes the intent and the view translates it:
+A base class earns its keep when the *body* repeats identically. Overriding `animateIn`/`animateOut`
+alone isn't "sharing" — that's just the per-view hook every view already has; the real win is the
+shared `onMount` wiring (and a sensible animation default) living in one place. (A subclass that
+needs its own `onMount` should call `super.onMount()` to keep the inherited wiring.)
+
+If the behaviour depends on *state*, the model exposes the intent and the view translates it:
 
 ```js
 animateOut() { return this.props.model.isOverdue ? shake(this.el) : fadeOut(this.el); }
