@@ -17,10 +17,10 @@ const NAV = [
     items: [
       'event-emitter', 'dom', 'animate', 'view', 'model', 'collection', 'collection-view',
       'region', 'router', 'http', 'i18n', 'validate', 'element', 'canvas',
-    ].map((id) => ({ id, doc: id, example: id })).concat([
-      // particles is an example of the canvas module — its own live page, same doc.
-      { id: 'particles', doc: 'canvas', example: 'particles' },
-    ]),
+    ].map((id) =>
+      // canvas shows two live examples on one page (bars + particles).
+      id === 'canvas' ? { id, doc: id, examples: ['canvas', 'particles'] } : { id, doc: id, example: id },
+    ),
   },
   {
     label: { en: 'Guides', es: 'Guías' },
@@ -124,14 +124,16 @@ class DocPage extends View {
   onMount() { this.load(); }
   async load() {
     const { item, lang } = this.props;
-    if (item.example) {
-      // two columns: sticky example on the left, docs on the right
+    const examples = item.examples ?? (item.example ? [item.example] : []);
+    if (examples.length) {
+      // two columns: example(s) on the left, docs on the right
       this.ui.layout.className = 'grid lg:grid-cols-2 gap-8 items-start';
       this.ui.exWrap.hidden = false;
-      this.ui.exLabel.textContent = I18N[lang].example;
-      this.ui.open.textContent = I18N[lang].open;
-      this.ui.open.href = `../examples/${item.example}/`;
-      this.ui.frame.src = `../examples/${item.example}/`;
+      // a single tall example stays sticky; stacked examples scroll with the page
+      this.ui.exWrap.className =
+        examples.length > 1 ? 'min-w-0 space-y-5' : 'min-w-0 lg:sticky lg:top-[4.5rem] space-y-4';
+      this.ui.exLabel.textContent = I18N[lang].example + (examples.length > 1 ? 's' : '');
+      this.ui.exFrames.replaceChildren(...examples.map((ex) => this.exBlock(ex, lang, examples.length)));
     } else {
       // single readable column
       this.ui.layout.className = 'max-w-3xl';
@@ -147,6 +149,29 @@ class DocPage extends View {
     } catch {
       this.ui.body.textContent = `Could not load docs/${lang}/${item.doc}.md`;
     }
+  }
+
+  /** Build one example block: a labelled live iframe + an open-in-new-tab link. */
+  exBlock(ex, lang, count) {
+    const wrap = document.createElement('div');
+    const h = count > 1 ? 'h-[24rem]' : 'h-[26rem] lg:h-[calc(100vh-9rem)]';
+    if (count > 1) {
+      const cap = document.createElement('div');
+      cap.className = 'text-xs text-slate-500 mb-1';
+      cap.textContent = ex;
+      wrap.append(cap);
+    }
+    const frame = document.createElement('iframe');
+    frame.src = `../examples/${ex}/`;
+    frame.title = ex;
+    frame.className = `w-full ${h} border border-slate-200 rounded-xl bg-white`;
+    const open = document.createElement('a');
+    open.href = `../examples/${ex}/`;
+    open.target = '_blank';
+    open.className = 'inline-block mt-2 text-sm text-blue-600 hover:underline';
+    open.textContent = count > 1 ? `${ex} — ${I18N[lang].open}` : I18N[lang].open;
+    wrap.append(frame, open);
+    return wrap;
   }
 }
 

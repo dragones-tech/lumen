@@ -137,17 +137,28 @@ bar.model.on('change:value', ({ value }) =>
 // snap en vez de tween: bar.h = value * 2; stage.invalidate();
 ```
 
-Para movimiento abierto (sin destino), sobreescribe `update(dt)` e integra por tiempo — un emisor de
-partículas registra un animador continuo y avanza su array cada frame:
+## Partículas — el ticker continuo
+
+La gráfica de barras solo usó la mitad **on-demand** del loop (redibuja al cambiar datos, luego
+idle). Las partículas ejercitan la otra mitad. Son *solo salida* — sin un `Model` por partícula
+(podrían ser miles) — así que un `Emitter` posee un array plano y lo avanza por **tiempo** en
+`update(dt)`. Para mantener el loop vivo registra un **animador continuo**; al pausar lo des-registra
+y el stage vuelve a un idle real (cero frames). Es el segundo ejemplo `canvas` de esta página.
 
 ```js
 class Emitter extends Node2D {
   play()  { this._stop = this.stage.animate((dt) => this.update(dt)); }  // mantén vivo el ticker
   pause() { this._stop?.(); this._stop = null; }                          // → el stage queda idle
-  update(dt) { for (const p of this.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 480 * dt; } }
+  update(dt) {                                                            // avanza por tiempo transcurrido
+    for (const p of this.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 480 * dt; }
+    this.particles = this.particles.filter((p) => p.age < p.life);
+  }
   paint(ctx) { /* dibuja cada partícula */ }
 }
 ```
+
+Así el mismo `Stage` cubre los dos modos sin que elijas: las ediciones discretas de datos redibujan
+on-demand, y lo que se mueve por tiempo registra un animador y monta el ticker hasta que se detiene.
 
 ## Interacción — hit-testing
 

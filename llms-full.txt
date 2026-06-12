@@ -1732,17 +1732,28 @@ bar.model.on('change:value', ({ value }) =>
 // snap instead of tween: bar.h = value * 2; stage.invalidate();
 ```
 
-For open-ended motion (no target), override `update(dt)` and integrate by time — a particle
-emitter registers a continuous animator and advances its array each frame:
+## Particles — the continuous ticker
+
+The bar chart only used the loop's **on-demand** half (redraw when data changes, then idle).
+Particles exercise the other half. They're *output-only* — no `Model` per particle (there could be
+thousands) — so an `Emitter` owns a flat array and advances it by **time** in `update(dt)`. To keep
+the loop running it registers a **continuous animator**; pausing deregisters it and the stage returns
+to a true idle (zero frames). This is the second `canvas` example on this page.
 
 ```js
 class Emitter extends Node2D {
   play()  { this._stop = this.stage.animate((dt) => this.update(dt)); }  // keep the ticker alive
   pause() { this._stop?.(); this._stop = null; }                          // → stage goes idle
-  update(dt) { for (const p of this.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 480 * dt; } }
+  update(dt) {                                                            // advance by elapsed time
+    for (const p of this.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 480 * dt; }
+    this.particles = this.particles.filter((p) => p.age < p.life);
+  }
   paint(ctx) { /* draw each particle */ }
 }
 ```
+
+So the same `Stage` covers both modes without you choosing one: discrete data edits redraw on
+demand, while anything that moves by time registers an animator and rides the ticker until it stops.
 
 ## Interaction — hit-testing
 
