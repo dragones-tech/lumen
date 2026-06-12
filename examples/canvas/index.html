@@ -27,8 +27,9 @@
     One <code>Collection</code> of quarters drives <strong>both</strong> a canvas chart (a
     <code>CanvasLayer</code> of <code>Node2D</code> bars) <strong>and</strong> a DOM legend (a
     <code>CollectionView</code>). Edit the data once — both react. Bars tween via
-    <code>node.animate()</code> on the stage loop; the legend updates surgically. There is nothing
-    to sync, because there is only one source of truth.
+    <code>node.animate()</code> on the stage loop; the legend updates surgically. <strong>Click a
+    bar</strong> to bump its value (canvas hit-testing → the shared model → both projections). There
+    is nothing to sync, because there is only one source of truth.
   </p>
 
   <div class="controls">
@@ -82,6 +83,9 @@
         ctx.fillStyle = this.model.color;
         ctx.fillRect(0, -this.h, W, this.h);          // grows up from the baseline
       }
+      contains(x, y) {                                 // clickable region matches the drawn bar (upward)
+        return x >= 0 && x <= W && y <= 0 && y >= -this.h;
+      }
       onAdd() {                                        // animate in, and on any value change
         this.animate({ h: this.model.get('value') * SCALE }, { duration: 600, easing: easeOutCubic });
         this.model.on('change:value', ({ value }) =>
@@ -129,6 +133,16 @@
       data.forEach((m) => m.set('value', rand()));
     document.querySelector('[data-ref=add]').onclick = () =>
       data.add({ label: 'Q' + n++, value: rand() });
+
+    // ── Interaction — hit-test the canvas; a click on a bar edits the shared model ──
+    const at = (e) => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    canvas.addEventListener('pointerdown', (e) => {
+      const node = stage.hitTest(...at(e));
+      if (node?.model) node.model.set('value', Math.min(100, node.model.get('value') + 12));
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      canvas.style.cursor = stage.hitTest(...at(e))?.model ? 'pointer' : 'default';
+    });
   </script>
 </body>
 </html>

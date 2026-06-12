@@ -92,6 +92,20 @@ export class Stage {
   }
 
   /**
+   * Find the topmost node at a canvas-space point (e.g. `clientX - canvas.getBoundingClientRect().left`),
+   * or `null`. Walks root nodes front-to-back, recursing into layers. Honors translate + scale, not
+   * rotation (phase 2). Wire it from a `pointerdown`/`pointermove` listener on the canvas.
+   * @param {number} px @param {number} py @returns {Node2D | null}
+   */
+  hitTest(px, py) {
+    for (let i = this.nodes.length - 1; i >= 0; i--) {
+      const hit = this.nodes[i]._hit(px, py);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  /**
    * Register a per-frame callback (a tween or emitter). The ticker runs while any are active.
    * @param {(dt: number) => void} update - Called each frame with `dt` in seconds.
    * @returns {() => void} Deregister; when the last one goes the stage returns to idle.
@@ -264,6 +278,28 @@ export class Node2D {
       this._stopTween = null;
     }
   }
+
+  // ---- Hit testing (translate + scale; rotation is phase 2) ----
+
+  /**
+   * Whether a point in **this node's local space** is inside it. Default `false` (nothing to hit);
+   * shapes override. Used by {@link Stage#hitTest} to route pointer input to a node.
+   * @param {number} x @param {number} y @returns {boolean}
+   */
+  contains(x, y) {
+    return false;
+  }
+
+  /**
+   * Internal: map a parent-space point into local space and return this node if it's a hit.
+   * @param {number} px @param {number} py @returns {Node2D | null}
+   */
+  _hit(px, py) {
+    if (!this.visible) return null;
+    const x = (px - this.x) / this.scale;
+    const y = (py - this.y) / this.scale;
+    return this.contains(x, y) ? this : null;
+  }
 }
 
 /** A filled/stroked rectangle drawn from its origin. Fields: `w`, `h`, `fill`, `stroke`, `lineWidth`. */
@@ -280,6 +316,11 @@ export class Rect extends Node2D {
       ctx.lineWidth = self.lineWidth ?? 1;
       ctx.strokeRect(0, 0, self.w, self.h);
     }
+  }
+  /** @param {number} x @param {number} y @returns {boolean} */
+  contains(x, y) {
+    const self = /** @type {any} */ (this);
+    return x >= 0 && x <= self.w && y >= 0 && y <= self.h;
   }
 }
 
@@ -299,6 +340,11 @@ export class Circle extends Node2D {
       ctx.lineWidth = self.lineWidth ?? 1;
       ctx.stroke();
     }
+  }
+  /** @param {number} x @param {number} y @returns {boolean} */
+  contains(x, y) {
+    const r = /** @type {any} */ (this).r;
+    return x * x + y * y <= r * r;
   }
 }
 
@@ -411,5 +457,20 @@ export class CanvasLayer extends Node2D {
     ctx.translate(this.x, this.y);
     for (const child of this.children) child.draw(ctx);
     ctx.restore();
+  }
+
+  /**
+   * Hit-test children topmost-first in the layer's local space.
+   * @param {number} px @param {number} py @returns {Node2D | null}
+   */
+  _hit(px, py) {
+    if (!this.visible) return null;
+    const x = (px - this.x) / this.scale;
+    const y = (py - this.y) / this.scale;
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      const hit = this.children[i]._hit(x, y);
+      if (hit) return hit;
+    }
+    return null;
   }
 }
