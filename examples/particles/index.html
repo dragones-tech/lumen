@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Canvas spike — particles (the continuous ticker)</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    .muted { color: #666; }
+    button { font: inherit; border: 1px solid #d0d5dd; background: #fff; border-radius: 8px; padding: .4rem .7rem; cursor: pointer; }
+    button:hover { background: #f1f3f5; }
+    .controls { display: flex; gap: .5rem; align-items: center; margin: .6rem 0 1rem; }
+    .stat { color: #666; font-variant-numeric: tabular-nums; margin-left: auto; }
+    canvas { border: 1px solid #e6e8eb; border-radius: 10px; background: #0d1117; display: block; cursor: crosshair; }
+  </style>
+</head>
+<body>
+  <h1>Particles · the continuous ticker</h1>
+  <p class="muted">
+    The bar chart used the loop's <strong>on-demand</strong> half (redraw when data changes, then
+    idle). Particles exercise the other half: an <code>Emitter</code> (a <code>Node2D</code>) drives
+    motion in <code>update(dt)</code> and registers a <strong>continuous animator</strong>, so the
+    stage ticks ~60fps while it plays — and goes fully idle the moment you pause. Click the canvas
+    to fire a burst.
+  </p>
+
+  <div class="controls">
+    <button data-ref="toggle">Pause</button>
+    <button data-ref="burst">Burst</button>
+    <span class="stat">particles: <b data-ref="count">0</b> · frames idle when paused</span>
+  </div>
+
+  <canvas id="fx" width="560" height="320"></canvas>
+
+  <script type="module">
+    import { Stage, Node2D } from '../../src/canvas.js';
+
+    const GRAVITY = 480;                 // px/s²
+    const PALETTE = ['#60a5fa', '#f59e0b', '#34d399', '#f472b6', '#a78bfa'];
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+
+    // An emitter is output-only: no per-particle Model (could be thousands). It owns a flat array,
+    // advances it by TIME in update(dt), and keeps the loop alive by registering a continuous
+    // animator. Pausing deregisters it → the stage returns to a true idle (0 frames).
+    class Emitter extends Node2D {
+      constructor(props) {
+        super(props);
+        this.particles = [];
+        this.rate = props.rate ?? 90;    // particles per second while playing
+        this._acc = 0;
+        this._stop = null;               // deregister fn while playing
+      }
+      play() { if (!this._stop && this.stage) this._stop = this.stage.animate((dt) => this.update(dt)); }
+      pause() { if (this._stop) { this._stop(); this._stop = null; } }
+      get playing() { return !!this._stop; }
+
+      burst(n = 80) {                    // a one-off pop, even while paused
+        for (let i = 0; i < n; i++) this.spawn(rnd(-260, 260), rnd(-260, -120));
+        this.stage?.invalidate();        // ensure at least one redraw if paused
+      }
+      spawn(vx = rnd(-120, 120), vy = rnd(-300, -160)) {
+        this.particles.push({ x: 0, y: 0, vx, vy, age: 0, life: rnd(0.9, 1.8), size: rnd(1.5, 4), color: pick(PALETTE) });
+      }
+      update(dt) {
+        this._acc += this.rate * dt;
+        while (this._acc >= 1) { this._acc -= 1; this.spawn(); }
+        for (const p of this.particles) {
+          p.age += dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += GRAVITY * dt;
+        }
+        this.particles = this.particles.filter((p) => p.age < p.life);
+      }
+      paint(ctx) {
+        const base = ctx.globalAlpha;
+        for (const p of this.particles) {
+          ctx.globalAlpha = base * (1 - p.age / p.life);   // fade out over life
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = base;
+      }
+    }
+
+    const canvas = document.querySelector('#fx');
+    const stage = new Stage(canvas);
+    const fountain = stage.add(new Emitter({ x: 280, y: 300, rate: 120 }));
+    fountain.play();
+
+    // live particle count (a tiny DOM projection of the canvas state)
+    const countEl = document.querySelector('[data-ref=count]');
+    stage.add(new (class extends Node2D {                 // a no-draw node just to sync the DOM each frame
+      paint() {}
+      update() { countEl.textContent = fountain.particles.length; }
+    })());
+
+    const toggle = document.querySelector('[data-ref=toggle]');
+    toggle.onclick = () => {
+      if (fountain.playing) { fountain.pause(); toggle.textContent = 'Play'; }
+      else { fountain.play(); toggle.textContent = 'Pause'; }
+    };
+    document.querySelector('[data-ref=burst]').onclick = () => fountain.burst();
+
+    // click the canvas → a burst at that point
+    canvas.addEventListener('click', (e) => {
+      const r = canvas.getBoundingClientRect();
+      fountain.x = e.clientX - r.left;
+      fountain.y = e.clientY - r.top;
+      fountain.burst(60);
+    });
+  </script>
+</body>
+</html>

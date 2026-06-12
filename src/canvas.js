@@ -302,6 +302,40 @@ export class Circle extends Node2D {
   }
 }
 
+/** A stroked polyline. Fields: `points` (array of `[x, y]`), `stroke`, `lineWidth`, `closed`. */
+export class Line extends Node2D {
+  /** @param {CanvasRenderingContext2D} ctx */
+  paint(ctx) {
+    const self = /** @type {any} */ (this);
+    /** @type {[number, number][]} */
+    const pts = self.points;
+    if (!pts || pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (self.closed) ctx.closePath();
+    ctx.strokeStyle = self.stroke ?? '#000';
+    ctx.lineWidth = self.lineWidth ?? 1;
+    ctx.stroke();
+  }
+}
+
+/**
+ * A line of text. Fields: `text`, `font`, `fill`, `align`, `baseline`. Note: canvas text has no
+ * accessibility or selection — for real UI copy, use a DOM `View` projection instead.
+ */
+export class Text extends Node2D {
+  /** @param {CanvasRenderingContext2D} ctx */
+  paint(ctx) {
+    const self = /** @type {any} */ (this);
+    ctx.fillStyle = self.fill ?? '#000';
+    ctx.font = self.font ?? '14px system-ui, sans-serif';
+    ctx.textAlign = self.align ?? 'left';
+    ctx.textBaseline = self.baseline ?? 'alphabetic';
+    ctx.fillText(self.text ?? '', 0, 0);
+  }
+}
+
 /**
  * The canvas analog of `CollectionView`: one child {@link Node2D} per model, reconciled from a
  * `Collection`'s `add`/`remove`/`reset` events. A bubbled `change` from any model invalidates the
