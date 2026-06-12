@@ -185,6 +185,50 @@ Esto es justo lo que un formulario necesita: habilita el botón **Guardar** solo
 confirme. Como `revert()` pasa por `set`, cada vista observadora reacciona por la misma ruta
 `change` que cualquier edición.
 
+## Datos derivados — el modelo como su propio presenter
+
+El JSON de la API llega plano (`{ status: 'done', due: 1699… }`), pero las vistas necesitan
+valores de *presentación* que no vienen en él: un color para un estado, un flag "está vencido",
+una etiqueta legible. No los guardes ni los recalcules en cada vista — **un `Model` es una clase
+de verdad, así que exprésalos una sola vez como getters**. Cada vista que pinte el modelo los
+reutiliza:
+
+```js
+class Task extends Model {
+  get color()     { return { todo: '#9ca3af', doing: '#2563eb', done: '#16a34a' }[this.get('status')]; }
+  get isOverdue() { return !this.get('done') && this.get('due') < Date.now(); }
+  get label()     { return this.get('title').trim() || '(sin título)'; }
+}
+```
+
+```js
+// la vista lee el valor derivado — nunca reimplementa el mapa de colores:
+const paint = () => {
+  this.el.style.setProperty('--accent', model.color);
+  this.el.classList.toggle('is-overdue', model.isOverdue);
+};
+paint();
+model.on('change', paint, { signal: this.signal });
+```
+
+Esto es el patrón **presenter / view-model**: la capa que convierte datos crudos en valores
+listos para pintar. En Lumen esa capa *es* la subclase de `Model` — sin objeto decorator aparte,
+porque "qué color le toca a una tarea `done`" es parte del *significado* del dato.
+
+- **La reactividad sigue siendo explícita.** Un getter no emite su propio `change:color`, ni le
+  hace falta. `color` deriva de `status`, así que la vista escucha la clave *origen*
+  (`change:status`, o `change`) y recalcula. La dependencia está escrita en el handler, no oculta
+  tras un tracker.
+- **Los getters no se serializan.** `toJSON()` solo expande `data`, así que los derivados nunca
+  se cuelan en un payload de guardado. Si quieres un snapshot *con* ellos, añade tu propio `toView()`.
+- **La posición no es dato derivado — pertenece a la `Collection`.** El índice de un modelo
+  depende de la lista, no de sí mismo, así que no lo pongas en el modelo (se desincronizaría al
+  insertar/quitar). Léelo de la colección (`collection.models.indexOf(model)`, o el `index` de los
+  eventos `add`/`remove`) o pásalo con `childProps(model)` de un `CollectionView`.
+- **El comportamiento de *render* compartido (p. ej. la misma animación de entrada/salida)** es
+  trabajo de la View, no del modelo — factorízalo en una subclase base de `View`. Ver
+  [View › comportamiento de render compartido](view.md#comportamiento-de-render-compartido).
+
 ## Notas de diseño
 
 - La notificación lleva `previous` y `value`, así los observadores pueden comparar sin guardar su propia copia.

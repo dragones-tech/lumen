@@ -197,6 +197,34 @@ Dos patrones, ambos explícitos:
 - **Eventos por vista**: `this.events.emit('remove', this)`; el padre hace
   `child.events.on('remove', handler, { signal: child.signal })`.
 
+## Comportamiento de render compartido
+
+Cuando varias vistas comparten el *mismo* comportamiento de presentación — la misma animación de
+entrada/salida, el mismo esqueleto de carga — no lo copies en cada una. Como una vista es una
+clase, factoriza el comportamiento compartido en una subclase base de `View` y extiéndela:
+
+```js
+class FadeView extends View {            // compartido una vez
+  animateIn()  { return fadeIn(this.el); }
+  animateOut() { return fadeOut(this.el); }
+}
+
+class TaskItem extends FadeView { static template = '#task-item'; /* … */ }
+class Toast    extends FadeView { static template = '#toast'; }
+```
+
+Si la animación depende del *estado*, el modelo expone la intención y la vista la traduce:
+
+```js
+animateOut() { return this.props.model.isOverdue ? shake(this.el) : fadeOut(this.el); }
+```
+
+Mantén la división limpia: los **datos derivados de presentación** (un color para un estado, un
+flag "está vencido") viven en el modelo como getters — ver
+[Model › datos derivados](model.md#datos-derivados--el-modelo-como-su-propio-presenter); el
+**comportamiento de render** (animaciones, cableado del DOM) vive en la vista, compartido vía una
+clase base.
+
 ## Notas de diseño
 
 - `build()` corre `render()`/`refs()` *después* de que la subclase está totalmente construida (lo llama `mount`, no el constructor), así un `render()` u `onCreate()` sobreescritos pueden usar campos de la subclase sin problemas — sin el footgun del orden de inicialización de campos.

@@ -197,6 +197,32 @@ Two patterns, both explicit:
 - **Per-view events**: `this.events.emit('remove', this)`; the parent does
   `child.events.on('remove', handler, { signal: child.signal })`.
 
+## Shared render behaviour
+
+When several views share the *same* presentation behaviour — the same enter/exit animation,
+the same loading skeleton — don't copy it into each one. Because a view is a class, factor the
+shared behaviour into a base `View` subclass and extend it:
+
+```js
+class FadeView extends View {            // shared once
+  animateIn()  { return fadeIn(this.el); }
+  animateOut() { return fadeOut(this.el); }
+}
+
+class TaskItem extends FadeView { static template = '#task-item'; /* … */ }
+class Toast    extends FadeView { static template = '#toast'; }
+```
+
+If the animation depends on *state*, the model exposes the intent and the view translates it:
+
+```js
+animateOut() { return this.props.model.isOverdue ? shake(this.el) : fadeOut(this.el); }
+```
+
+Keep the split clean: **derived presentational *data*** (a colour for a status, an "is overdue"
+flag) lives on the model as getters — see [Model › derived data](model.md#derived-data--the-model-as-its-own-presenter);
+**render *behaviour*** (animations, DOM wiring) lives on the view, shared via a base class.
+
 ## Design notes
 
 - `build()` runs `render()`/`refs()` *after* the subclass is fully constructed (it is called by `mount`, not the constructor), so overridden `render()` and `onCreate()` can safely use subclass fields — no constructor field-ordering footgun.

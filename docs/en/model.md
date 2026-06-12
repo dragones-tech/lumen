@@ -180,6 +180,47 @@ This is exactly what a form needs: enable the **Save** button only `while (model
 wire **Discard** to `revert()`, and `commit()` once the server confirms. Because `revert()`
 goes through `set`, every observing view reacts through the same `change` path as any edit.
 
+## Derived data — the model as its own presenter
+
+API JSON arrives flat (`{ status: 'done', due: 1699… }`), but views need *presentational*
+values that aren't in it: a colour for a status, an "is overdue" flag, a human label. Don't
+store those and don't recompute them in every view — **a `Model` is a real class, so express
+them once as getters**. Every view that renders the model reuses them:
+
+```js
+class Task extends Model {
+  get color()     { return { todo: '#9ca3af', doing: '#2563eb', done: '#16a34a' }[this.get('status')]; }
+  get isOverdue() { return !this.get('done') && this.get('due') < Date.now(); }
+  get label()     { return this.get('title').trim() || '(untitled)'; }
+}
+```
+
+```js
+// the view reads the derived value — it never re-implements the colour map:
+const paint = () => {
+  this.el.style.setProperty('--accent', model.color);
+  this.el.classList.toggle('is-overdue', model.isOverdue);
+};
+paint();
+model.on('change', paint, { signal: this.signal });
+```
+
+This is the **presenter / view-model** pattern: the layer that turns raw data into
+render-ready values. In Lumen that layer *is* the `Model` subclass — no separate decorator
+object, because "what colour a `done` task is" belongs to the data's meaning.
+
+- **Reactivity stays explicit.** A getter emits no `change:color` of its own; it doesn't need
+  to. `color` derives from `status`, so the view listens to the *source* key (`change:status`,
+  or `change`) and recomputes. The dependency is written in the handler, not hidden in a tracker.
+- **Getters aren't serialized.** `toJSON()` spreads `data` only, so derived values never leak
+  into a save payload. If you want a snapshot *with* them, add your own `toView()`.
+- **Position is not derived data — it belongs to the `Collection`.** A model's index depends on
+  the list, not on itself, so don't put it on the model (it would go stale on insert/remove).
+  Read it from the collection (`collection.models.indexOf(model)`, or the `index` on `add`/`remove`
+  events) or pass it down via `CollectionView`'s `childProps(model)`.
+- **Shared *render* behaviour (e.g. the same enter/exit animation)** is the View's job, not the
+  model's — factor it into a base `View` subclass. See [View › shared render behaviour](view.md#shared-render-behaviour).
+
 ## Design notes
 
 - Notification carries `previous` and `value`, so observers can diff without keeping their own copy.
