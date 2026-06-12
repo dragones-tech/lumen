@@ -7,7 +7,7 @@ Una lista ordenada de `Model`s con eventos estructurales. Se empareja con `Colle
 
 - **Las mutaciones se anuncian.** `add`, `remove` y `reset` cambian la lista y emiten un evento.
 - **Las consultas nunca mutan.** `find`, `where`, `filter`, `map` y `sort` devuelven resultados y dejan el contenido y el orden de la colección intactos. (El `find`/`where`/`sort` del framework anterior *sobrescribía* la lista visible como efecto secundario de consultar — esto corrige esa trampa.)
-- **Reacciones locales.** Los cambios por modelo no se propagan aquí; en un `CollectionView` cada modelo tiene su propia vista suscrita a su propio modelo, así las reacciones quedan granulares.
+- **Los cambios se propagan (bubbling).** El `change` de un modelo se reemite como un `change` a nivel de colección — reacciona a "cambió algo en la lista" sin una sub-vista por fila. Las suscripciones se gestionan por ti (se añaden en `add`/`reset`, se quitan en `remove`/`reset`), así un modelo removido no deja fugas. Para UI por fila, prefiere un `CollectionView` — cada modelo tiene su propia vista suscrita a su propio modelo, manteniendo las reacciones granulares.
 
 ## Eventos
 
@@ -16,6 +16,7 @@ Una lista ordenada de `Model`s con eventos estructurales. Se empareja con `Colle
 | `add` | `{ model, index, collection }` | Se añadió un modelo. |
 | `remove` | `{ model, index, collection }` | Se quitó un modelo. |
 | `reset` | `{ models, collection }` | Se reemplazó toda la lista. |
+| `change` | `{ model, keys, collection }` | Un modelo de la lista cambió (propagado). `keys` son los atributos cambiados. |
 
 ## API
 
@@ -50,6 +51,10 @@ const todos = new Collection([
 todos.on('add',    ({ model }) => console.log('añadido', model.get('text')));
 todos.on('remove', ({ model }) => console.log('quitado', model.get('text')));
 
+// `change` se propaga desde cualquier modelo — útil para un botón "Guardar todo" o un total en vivo:
+todos.on('change', ({ model, keys }) => console.log(model.get('id'), 'cambió', keys));
+todos.at(0).set('done', false);                     // → change { model: a, keys: ['done'] }
+
 todos.add({ id: 3, text: 'c', done: false });
 
 // Las consultas devuelven resultados SIN cambiar el orden de la colección:
@@ -71,3 +76,4 @@ const todos = new Collection([], Todo);
 - `sort` devuelve una copia en vez de ordenar in situ, así una consulta nunca puede reordenar lo que ven los observadores. Para presentar otro orden, renderiza desde el array devuelto (o, luego, pásalo a un `CollectionView`).
 - Construido sobre `EventEmitter`; las suscripciones aceptan un `AbortSignal`, así una vista puede suscribirse con `this.signal` y limpiarse al desmontar.
 - `add`/`remove` llevan el `index`, que `CollectionView` usará para insertar o quitar una sola vista hija sin reconstruir la lista.
+- El bubbling de `change` usa una única referencia de handler suscrita a cada modelo, así la colección suelta la suscripción de un modelo removido con un solo `off` — sin bookkeeping por modelo, sin fugas.

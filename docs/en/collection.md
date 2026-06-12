@@ -7,7 +7,7 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 
 - **Mutations are announced.** `add`, `remove` and `reset` change the list and emit an event.
 - **Queries never mutate.** `find`, `where`, `filter`, `map` and `sort` return results and leave the collection's contents and order untouched. (The old framework's `find`/`where`/`sort` *overwrote* the visible list as a side effect of querying — this fixes that trap.)
-- **Local reactions.** Per-model changes aren't bubbled here; in a `CollectionView` each model gets its own view subscribed to its own model, so reactions stay granular.
+- **Changes bubble.** A model's `change` re-emits as a collection-level `change` — react to "anything in the list changed" without a sub-view per row. Subscriptions are managed for you (added on `add`/`reset`, dropped on `remove`/`reset`), so removed models leak nothing. For per-row UI, prefer a `CollectionView` — each model gets its own view subscribed to its own model, keeping reactions granular.
 
 ## Events
 
@@ -16,6 +16,7 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 | `add` | `{ model, index, collection }` | A model was appended. |
 | `remove` | `{ model, index, collection }` | A model was removed. |
 | `reset` | `{ models, collection }` | The whole list was replaced. |
+| `change` | `{ model, keys, collection }` | A model in the list changed (bubbled). `keys` are the changed attributes. |
 
 ## API
 
@@ -50,6 +51,10 @@ const todos = new Collection([
 todos.on('add',    ({ model }) => console.log('added', model.get('text')));
 todos.on('remove', ({ model }) => console.log('removed', model.get('text')));
 
+// `change` bubbles from any model — handy for a "Save all" button or a live total:
+todos.on('change', ({ model, keys }) => console.log(model.get('id'), 'changed', keys));
+todos.at(0).set('done', false);                     // → change { model: a, keys: ['done'] }
+
 todos.add({ id: 3, text: 'c', done: false });
 
 // Queries return results WITHOUT changing the collection's order:
@@ -71,3 +76,4 @@ const todos = new Collection([], Todo);
 - `sort` returns a copy rather than sorting in place, so a query can never reorder what observers see. To present a different order, render from the returned array (or, later, feed it to a `CollectionView`).
 - Built on `EventEmitter`; subscriptions accept an `AbortSignal`, so a view can subscribe with `this.signal` and clean up on unmount.
 - `add`/`remove` carry the `index`, which `CollectionView` will use to insert or remove a single child view without rebuilding the list.
+- `change` bubbling uses one shared handler reference subscribed to each model, so the collection drops a removed model's subscription with a single `off` — no per-model bookkeeping, no leaks.

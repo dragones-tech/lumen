@@ -11,8 +11,12 @@ import { Model } from './model.js';
  * framework's `find`/`where`/`sort` destructively overwrote the visible list as a side
  * effect of querying — a surprising trap this fixes.)
  *
- * Per-model changes are not bubbled here. In a `CollectionView` each model gets its own
- * view that subscribes to its own model, so reactions stay local and granular.
+ * Per-model changes **bubble**: the collection subscribes to each model's `change` and
+ * re-emits a collection-level `change` `{ model, keys, collection }`, so you can react to
+ * "anything in the list changed" (enable a *Save all* button, recompute a total, persist)
+ * without a sub-view per row. Subscriptions are managed for you — added on `add`/`reset`,
+ * dropped on `remove`/`reset` — so removed models leave nothing behind. (For per-row UI you
+ * still want a `CollectionView`, where each model gets its own view bound to its own model.)
  *
  * @template {Record<string, any>} [Data=Record<string, any>]
  * @template {Model<Data>} [M=Model<Data>]
@@ -29,7 +33,31 @@ export class Collection {
     this.models = [];
     /** @private */
     this._events = new EventEmitter();
-    for (const item of items) this.models.push(this._wrap(item));
+    for (const item of items) {
+      const model = this._wrap(item);
+      this.models.push(model);
+      this._bind(model);
+    }
+  }
+
+  /**
+   * Re-emit a model's `change` as a collection-level `change`. One shared reference across all
+   * models, so `_unbind` can drop it from a single model with `off`.
+   * @private
+   * @param {{ keys: string[], model: M }} payload
+   */
+  _onModelChange = (payload) => {
+    this._events.emit('change', { model: payload.model, keys: payload.keys, collection: this });
+  };
+
+  /** @private @param {M} model */
+  _bind(model) {
+    model.on('change', /** @type {any} */ (this._onModelChange));
+  }
+
+  /** @private @param {M} model */
+  _unbind(model) {
+    model.off('change', /** @type {any} */ (this._onModelChange));
   }
 
   /**
@@ -74,6 +102,7 @@ export class Collection {
   add(item) {
     const model = this._wrap(item);
     const index = this.models.push(model) - 1;
+    this._bind(model);
     this._events.emit('add', { model, index, collection: this });
     return model;
   }
@@ -87,6 +116,7 @@ export class Collection {
     const index = this.models.indexOf(model);
     if (index === -1) return undefined;
     this.models.splice(index, 1);
+    this._unbind(model);
     this._events.emit('remove', { model, index, collection: this });
     return model;
   }
@@ -97,7 +127,9 @@ export class Collection {
    * @returns {this}
    */
   reset(items = []) {
+    for (const model of this.models) this._unbind(model);
     this.models = items.map((item) => this._wrap(item));
+    for (const model of this.models) this._bind(model);
     this._events.emit('reset', { models: this.models, collection: this });
     return this;
   }
@@ -166,8 +198,9 @@ export class Collection {
   // ---- Events ----
 
   /**
-   * Subscribe to `add`, `remove` or `reset`.
-   * @param {'add' | 'remove' | 'reset'} event
+   * Subscribe to a structural event — `add`/`remove`/`reset` — or `change`, which bubbles
+   * from any model in the list (payload `{ model, keys, collection }`).
+   * @param {'add' | 'remove' | 'reset' | 'change'} event
    * @param {(payload: any) => void} handler
    * @param {{ signal?: AbortSignal }} [options] - Pass a view's `signal` for auto-cleanup.
    * @returns {() => void} Unsubscribe.
@@ -178,7 +211,7 @@ export class Collection {
 
   /**
    * Subscribe for a single emission.
-   * @param {'add' | 'remove' | 'reset'} event
+   * @param {'add' | 'remove' | 'reset' | 'change'} event
    * @param {(payload: any) => void} handler
    * @param {{ signal?: AbortSignal }} [options]
    * @returns {() => void}
@@ -189,7 +222,7 @@ export class Collection {
 
   /**
    * Unsubscribe a handler.
-   * @param {'add' | 'remove' | 'reset'} event
+   * @param {'add' | 'remove' | 'reset' | 'change'} event
    * @param {(payload: any) => void} handler
    * @returns {void}
    */
