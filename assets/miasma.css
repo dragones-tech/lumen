@@ -1,0 +1,30 @@
+/* miasma — a warm, earthy scc theme: olive green + amber-gold on a dark, warm-gray
+   base. Inspired by the "miasma" colorscheme. It only forks scc's token contract —
+   no components are touched. Use it with:
+
+       <link rel="stylesheet" href=".../scc.css">
+       <link rel="stylesheet" href=".../assets/miasma.css">
+       <html data-mode="dark" data-theme="miasma">   <!-- dark is the iconic look -->
+
+   Mode (light/dark) is handled by scc via light-dark(); this file only sets the
+   knobs, so the same theme works in both modes. */
+
+@layer theme {
+  [data-theme="miasma"] {
+    /* identity */
+    --accent:    #c8a45c;   /* amber-gold highlight */
+    --accent-fg: #21201a;   /* dark text on the gold */
+    --success:   #78824b;   /* olive green */
+    --warning:   #c98a45;   /* burnt amber */
+    --danger:    #b35a44;   /* terracotta */
+
+    /* grays take a warm, olive temperature instead of cool/neutral */
+    --neutral-hue:    95;   /* olive (60 yellow · 140 green) */
+    --neutral-chroma: 6%;   /* visibly tinted, earthy */
+
+    /* shape: low radius + flat-ish shadow → retro-terminal feel */
+    --radius:       0.25rem;
+    --border-width: 1px;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  }
+}
