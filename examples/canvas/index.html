@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Canvas spike — one state, two projections</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
+    .muted { color: #666; }
+    button { font: inherit; border: 1px solid #d0d5dd; background: #fff; border-radius: 8px; padding: .4rem .7rem; cursor: pointer; }
+    button:hover { background: #f1f3f5; }
+    .controls { display: flex; gap: .5rem; margin: .6rem 0 1rem; }
+    canvas { border: 1px solid #e6e8eb; border-radius: 10px; background: #fcfcfd; display: block; }
+    .legend ul { list-style: none; padding: 0; margin: .6rem 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .legend li { display: flex; align-items: center; gap: .5rem; border: 1px solid #e6e8eb; border-radius: 999px;
+                 padding: .25rem .3rem .25rem .6rem; background: #fff; }
+    .legend .dot { width: .7rem; height: .7rem; border-radius: 50%; }
+    .legend .v { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 1.6rem; text-align: right; }
+    .legend .x { border: none; background: #f1f3f5; border-radius: 50%; width: 1.4rem; height: 1.4rem; line-height: 1; padding: 0; }
+  </style>
+</head>
+<body>
+  <h1>Canvas spike · one state, two projections</h1>
+  <p class="muted">
+    One <code>Collection</code> of quarters drives <strong>both</strong> a canvas chart (a
+    <code>CanvasLayer</code> of <code>Node2D</code> bars) <strong>and</strong> a DOM legend (a
+    <code>CollectionView</code>). Edit the data once — both react. Bars tween via
+    <code>node.animate()</code> on the stage loop; the legend updates surgically. There is nothing
+    to sync, because there is only one source of truth.
+  </p>
+
+  <div class="controls">
+    <button data-ref="rand">Randomize</button>
+    <button data-ref="add">Add quarter</button>
+  </div>
+
+  <canvas id="chart" width="560" height="300"></canvas>
+
+  <h2>Same data, as DOM</h2>
+  <div id="app"></div>
+
+  <template id="legend">
+    <div class="legend"><ul data-ref="list"></ul></div>
+  </template>
+  <template id="bar-label">
+    <li>
+      <span class="dot" data-ref="dot"></span>
+      <span data-ref="q"></span>
+      <span class="v" data-ref="v"></span>
+      <button class="x" data-ref="remove" title="remove">×</button>
+    </li>
+  </template>
+
+  <script type="module">
+    import { Model, Collection, View, CollectionView } from '../../src/index.js';
+    import { Stage, Node2D, Rect, CanvasLayer, easeOutCubic } from '../../src/canvas.js';
+
+    const SCALE = 2;            // px per unit of value
+    const BASE_Y = 250;         // canvas baseline
+    const STEP = 84;            // x distance between bars
+    const W = 56;               // bar width
+    const rand = () => 8 + Math.floor(Math.random() * 92);
+
+    // ── ONE state ──────────────────────────────────────────────────────────
+    // A derived getter (color from value) lives on the model — reused by BOTH projections.
+    class Bar extends Model {
+      get color() {
+        const v = this.get('value');
+        return v >= 80 ? '#dc2626' : v >= 50 ? '#f59e0b' : '#2563eb';
+      }
+    }
+    const data = new Collection(
+      [{ label: 'Q1', value: 40 }, { label: 'Q2', value: 92 }, { label: 'Q3', value: 21 }, { label: 'Q4', value: 64 }],
+      Bar,
+    );
+
+    // ── Projection A — canvas ──────────────────────────────────────────────
+    class BarNode extends Node2D {
+      paint(ctx) {
+        ctx.fillStyle = this.model.color;
+        ctx.fillRect(0, -this.h, W, this.h);          // grows up from the baseline
+      }
+      onAdd() {                                        // animate in, and on any value change
+        this.animate({ h: this.model.get('value') * SCALE }, { duration: 600, easing: easeOutCubic });
+        this.model.on('change:value', ({ value }) =>
+          this.animate({ h: value * SCALE }, { duration: 400 }), { signal: this.signal });
+      }
+    }
+    // A bar layer that reflows its children by index (so add/remove rearrange smoothly).
+    class BarLayer extends CanvasLayer {
+      draw(ctx) {
+        this.children.forEach((c, i) => { c.x = i * STEP; });
+        super.draw(ctx);
+      }
+    }
+
+    const canvas = document.querySelector('#chart');
+    const stage = new Stage(canvas);
+    stage.add(new Rect({ x: 30, y: BASE_Y, w: 500, h: 1, fill: '#d0d5dd' }));   // baseline axis
+    stage.add(new BarLayer(data, () => new BarNode({ h: 0 }), { x: 50, y: BASE_Y }));
+
+    // ── Projection B — DOM ─────────────────────────────────────────────────
+    class BarLabel extends View {
+      static template = '#bar-label';
+      onMount() {
+        const { model } = this.props;
+        const paint = () => {
+          this.ui.q.textContent = model.get('label');
+          this.ui.v.textContent = model.get('value');
+          this.ui.dot.style.background = model.color;
+        };
+        paint();
+        model.on('change', paint, { signal: this.signal });
+        this.listen(this.ui.remove, 'click', () => data.remove(model));
+      }
+    }
+    class Legend extends CollectionView {
+      static template = '#legend';
+      static childView = BarLabel;
+      static container = 'list';
+    }
+    new Legend({ collection: data }).mount(document.querySelector('#app'));
+
+    // ── Controls — they only touch the data; both projections follow ───────
+    let n = 5;
+    document.querySelector('[data-ref=rand]').onclick = () =>
+      data.forEach((m) => m.set('value', rand()));
+    document.querySelector('[data-ref=add]').onclick = () =>
+      data.add({ label: 'Q' + n++, value: rand() });
+  </script>
+</body>
+</html>
