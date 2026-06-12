@@ -652,8 +652,8 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 | Method | Description |
 |---|---|
 | `new Model(data)` | Create with initial attributes (copied, not referenced). |
-| `get(key)` | Read an attribute. |
-| `set(key, value)` / `set(patch)` | Write one attribute or merge a partial object. Returns `this`. |
+| `get(key)` / `get('a.b.c')` | Read an attribute, or a nested value by dot-path (missing branch → `undefined`). |
+| `set(key, value)` / `set('a.b.c', value)` / `set(patch)` | Write one attribute, a nested dot-path (immutable, creates missing branches), or merge a partial object. Returns `this`. |
 | `on(event, handler, { signal? })` | Subscribe. Returns an unsubscribe function. |
 | `once(event, handler, { signal? })` | Subscribe for a single emission. |
 | `off(event, handler)` | Unsubscribe. |
@@ -723,6 +723,39 @@ class User extends Model {
 }
 new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
 ```
+
+## Nested attributes — dot-paths
+
+API responses are rarely flat. When your JSON nests (`{ user: { address: { city } } }`),
+read and write deep with a **dot-path** instead of pulling the branch out by hand:
+
+```js
+const m = new Model({ user: { name: 'Ada', address: { city: 'London' } } });
+
+m.get('user.name');             // 'Ada'
+m.get('user.address.city');     // 'London'
+m.get('user.phone.work');       // undefined — a missing branch never throws
+m.get('tags.0');                // array indices work too
+
+m.set('user.address.city', 'Oslo');   // writes deep
+m.set('user.contact.email', 'a@x.io'); // creates the missing `contact` branch
+```
+
+**Writes are immutable.** `set` clones every branch along the path (and creates any missing
+one), so the top-level reference changes and the usual `!==` change-detection still fires —
+untouched siblings keep their identity. The event is keyed to the **root** of the path:
+
+```js
+m.on('change:user', ({ value }) => render(value));  // fires for ANY edit under `user`
+m.set('user.address.city', 'Oslo');                 // → change:user + change
+```
+
+So a view observes the whole branch it cares about (`change:user`) without subscribing to a
+combinatorial set of deep paths. Because writes are immutable, [dirty tracking](#dirty-tracking--unsaved-edits)
+works through nesting unchanged — `revert()` restores the deep value, `commit()` re-baselines it.
+
+> Dot-paths apply to the `get(path)` / `set(path, value)` forms. Keys of a **patch object**
+> (`set({ 'a.b': 1 })`) are taken **literally** — that creates a key named `'a.b'`, by design.
 
 ## Dirty tracking — unsaved edits
 

@@ -22,8 +22,8 @@ Datos observables de una sola entidad (un usuario, un todo, un ajuste). Se empar
 | Método | Descripción |
 |---|---|
 | `new Model(data)` | Crea con atributos iniciales (copiados, no referenciados). |
-| `get(key)` | Lee un atributo. |
-| `set(key, value)` / `set(patch)` | Escribe un atributo o fusiona un objeto parcial. Devuelve `this`. |
+| `get(key)` / `get('a.b.c')` | Lee un atributo, o un valor anidado por dot-path (rama faltante → `undefined`). |
+| `set(key, value)` / `set('a.b.c', value)` / `set(patch)` | Escribe un atributo, un dot-path anidado (inmutable, crea ramas faltantes), o fusiona un objeto parcial. Devuelve `this`. |
 | `on(event, handler, { signal? })` | Suscribe. Devuelve una función para desuscribirse. |
 | `once(event, handler, { signal? })` | Suscribe para una sola emisión. |
 | `off(event, handler)` | Desuscribe. |
@@ -93,6 +93,42 @@ class User extends Model {
 }
 new User({ email: 'mal' }).validate(); // { email: ['must be a valid email'] }
 ```
+
+## Atributos anidados — dot-paths
+
+Las respuestas de una API rara vez son planas. Cuando tu JSON anida
+(`{ user: { address: { city } } }`), lee y escribe en profundidad con un **dot-path** en vez
+de extraer la rama a mano:
+
+```js
+const m = new Model({ user: { name: 'Ada', address: { city: 'London' } } });
+
+m.get('user.name');             // 'Ada'
+m.get('user.address.city');     // 'London'
+m.get('user.phone.work');       // undefined — una rama faltante nunca lanza
+m.get('tags.0');                // los índices de array también funcionan
+
+m.set('user.address.city', 'Oslo');   // escribe en profundidad
+m.set('user.contact.email', 'a@x.io'); // crea la rama `contact` faltante
+```
+
+**Las escrituras son inmutables.** `set` clona cada rama del path (y crea las que falten), así
+la referencia de nivel superior cambia y la detección `!==` de siempre sigue disparándose —
+los hermanos no tocados conservan su identidad. El evento se ancla a la **raíz** del path:
+
+```js
+m.on('change:user', ({ value }) => render(value));  // dispara ante CUALQUIER edición bajo `user`
+m.set('user.address.city', 'Oslo');                 // → change:user + change
+```
+
+Así una vista observa toda la rama que le importa (`change:user`) sin suscribirse a un conjunto
+combinatorio de paths profundos. Como las escrituras son inmutables, el
+[seguimiento de cambios](#seguimiento-de-cambios--ediciones-sin-guardar) funciona a través del
+anidamiento sin cambios — `revert()` restaura el valor profundo y `commit()` lo re-basa.
+
+> Los dot-paths aplican a las formas `get(path)` / `set(path, value)`. Las claves de un **objeto
+> patch** (`set({ 'a.b': 1 })`) se toman **literalmente** — eso crea una clave llamada `'a.b'`,
+> a propósito.
 
 ## Seguimiento de cambios — ediciones sin guardar
 

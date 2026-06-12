@@ -46,25 +46,56 @@ export class Model {
   }
 
   /**
-   * Read one attribute.
+   * Read one attribute, or a nested value by **dot-path** — `get('user.name')` reaches into
+   * `{ user: { name } }`, exactly what an API's nested JSON gives you. A missing branch reads
+   * as `undefined` (never throws). A plain key with no dot is the fast, typed path.
+   *
    * @template {keyof Data} K
+   * @overload
    * @param {K} key
    * @returns {Data[K]}
    */
+  /**
+   * @overload
+   * @param {string} path - A dot-path like `'user.address.city'`.
+   * @returns {any}
+   */
+  /**
+   * @param {string | keyof Data} key
+   * @returns {any}
+   */
   get(key) {
-    return this.data[key];
+    if (typeof key === 'string' && key.includes('.')) {
+      return readPath(this.data, key.split('.'));
+    }
+    return /** @type {any} */ (this.data)[key];
   }
 
   /**
-   * Set one attribute, or merge a partial object. Only keys whose value actually
-   * changed (strict `!==`) are written and announced. New keys are fine — unlike the
-   * old framework, setting a key that wasn't in the initial data never throws.
+   * Set one attribute, a nested **dot-path**, or merge a partial object. Only values that
+   * actually changed (strict `!==`) are written and announced. New keys are fine — setting a
+   * key that wasn't in the initial data never throws.
    *
-   * @param {keyof Data | Partial<Data>} keyOrPatch - An attribute name, or a patch object.
-   * @param {any} [value] - The new value (when the first argument is a key).
+   * A dot-path (`set('user.address.city', 'Oslo')`) writes deep **immutably**: each branch
+   * along the path is cloned and any missing branch is created, so the top-level reference
+   * changes and `!==` detection still works. The event is keyed to the **root** of the path
+   * (`change:user`) plus `change` — a view observes the whole branch, granular without a
+   * combinatorial event surface. (Dot-paths only apply to the `set(key, value)` form; keys of
+   * a patch object are taken literally.)
+   *
+   * @param {keyof Data | string | Partial<Data>} keyOrPatch - An attribute name, a dot-path, or a patch object.
+   * @param {any} [value] - The new value (when the first argument is a key or path).
    * @returns {this}
    */
   set(keyOrPatch, value) {
+    if (typeof keyOrPatch === 'string' && keyOrPatch.includes('.')) {
+      const parts = keyOrPatch.split('.');
+      if (readPath(this.data, parts) === value) return this; // no-op on equal leaf
+      const rootKey = parts[0];
+      const branch = clonePath(/** @type {any} */ (this.data)[rootKey], parts.slice(1), value);
+      return this.set(/** @type {keyof Data} */ (rootKey), branch);
+    }
+
     const patch =
       typeof keyOrPatch === 'object' && keyOrPatch !== null
         ? /** @type {Partial<Data>} */ (keyOrPatch)
@@ -213,4 +244,38 @@ export class Model {
   toJSON() {
     return { ...this.data };
   }
+}
+
+/**
+ * Read a nested value by an already-split path. Returns `undefined` the moment a branch is
+ * missing — never throws on `null`/`undefined` along the way.
+ * @param {any} obj
+ * @param {string[]} parts
+ * @returns {any}
+ */
+function readPath(obj, parts) {
+  let node = obj;
+  for (const part of parts) {
+    if (node == null) return undefined;
+    node = node[part];
+  }
+  return node;
+}
+
+/**
+ * Return a structurally-shared **clone** of `node` with `value` written at `parts`, cloning
+ * each branch along the way and creating any missing object. Every level on the path gets a
+ * fresh container, so the top reference differs and `!==` detects the change; untouched
+ * siblings keep their identity (no needless churn).
+ * @param {any} node - The current value at this level (may be `undefined`).
+ * @param {string[]} parts - Remaining path segments (length ≥ 1).
+ * @param {any} value - The value to write at the end of the path.
+ * @returns {any}
+ */
+function clonePath(node, parts, value) {
+  const [head, ...rest] = parts;
+  const base = node != null && typeof node === 'object' ? node : {};
+  const clone = Array.isArray(base) ? [...base] : { ...base };
+  clone[head] = rest.length ? clonePath(base[head], rest, value) : value;
+  return clone;
 }
