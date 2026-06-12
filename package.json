@@ -1,24 +1,38 @@
 {
   "name": "@jehosogo/lumenjs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lumen — a transparent, no-magic, no-build vanilla-JS OOP UI framework. What you write is what runs.",
   "type": "module",
   "exports": {
     ".": "./src/index.js",
     "./*": "./src/*"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "homepage": "https://dragones-tech.github.io/lumen/site/",
-  "repository": { "type": "git", "url": "git+https://github.com/dragones-tech/lumen.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dragones-tech/lumen.git"
+  },
   "bugs": "https://github.com/dragones-tech/lumen/issues",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "check": "tsc --noEmit -p jsconfig.json",
     "serve": "node scripts/serve.mjs",
     "start": "node scripts/serve.mjs",
     "llms": "node scripts/build-llms.mjs"
   },
-  "keywords": ["ui", "framework", "vanilla", "oop", "no-build", "web-components-free"],
+  "keywords": [
+    "ui",
+    "framework",
+    "vanilla",
+    "oop",
+    "no-build",
+    "web-components-free"
+  ],
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.4.0"
