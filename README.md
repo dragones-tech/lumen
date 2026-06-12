@@ -81,6 +81,7 @@ npm run check
 | `i18n` | ✅ done | [en](docs/en/i18n.md) · [es](docs/es/i18n.md) — translations |
 | `validate` | ✅ done | [en](docs/en/validate.md) · [es](docs/es/validate.md) — model + UI validation |
 | `element` | ✅ done | [en](docs/en/element.md) · [es](docs/es/element.md) — use a View as a Custom Element (`defineElement`) |
+| `canvas` | 🧪 experimental | [en](docs/en/canvas.md) · [es](docs/es/canvas.md) — render the same Model/Collection to canvas (`Stage`/`Node2D`/`CanvasLayer`); import from `lumenjs/canvas` |
 
 ## Guides · Guías
 

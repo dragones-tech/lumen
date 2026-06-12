@@ -16,7 +16,7 @@ const NAV = [
     label: { en: 'Modules', es: 'Módulos' },
     items: [
       'event-emitter', 'dom', 'animate', 'view', 'model', 'collection', 'collection-view',
-      'region', 'router', 'http', 'i18n', 'validate', 'element',
+      'region', 'router', 'http', 'i18n', 'validate', 'element', 'canvas',
     ].map((id) => ({ id, doc: id, example: id })),
   },
   {

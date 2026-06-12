@@ -18,6 +18,7 @@ const MODULES = [
   ['i18n', 'Tiny reactive translations with {interpolation}, nested keys, and fallback.'],
   ['validate', 'Composable validation rules; Model.validate() returns errors keyed by field.'],
   ['element', 'defineElement(tag, ViewClass) — use a View as a Custom Element.'],
+  ['canvas', 'Experimental canvas layer — Stage/Node2D/CanvasLayer; render the same Model/Collection to canvas as well as DOM.'],
 ];
 
 const START = [

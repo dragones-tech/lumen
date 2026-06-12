@@ -21,6 +21,7 @@ Lumen is an OOP UI framework in the lineage of Backbone.js and Marionette.js, re
 - [i18n](https://dragones-tech.github.io/lumen/docs/en/i18n.md): Tiny reactive translations with {interpolation}, nested keys, and fallback.
 - [validate](https://dragones-tech.github.io/lumen/docs/en/validate.md): Composable validation rules; Model.validate() returns errors keyed by field.
 - [element](https://dragones-tech.github.io/lumen/docs/en/element.md): defineElement(tag, ViewClass) — use a View as a Custom Element.
+- [canvas](https://dragones-tech.github.io/lumen/docs/en/canvas.md): Experimental canvas layer — Stage/Node2D/CanvasLayer; render the same Model/Collection to canvas as well as DOM.
 
 ## Guides
 - [tradeoffs](https://dragones-tech.github.io/lumen/docs/en/tradeoffs.md): Strengths & limits — what Lumen is great at, where it falls short, and when to use it.
