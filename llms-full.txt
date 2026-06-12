@@ -1718,8 +1718,8 @@ new Legend({ collection: data }).mount(aside);
 data.get('q2')?.set('value', 30);
 ```
 
-See the **`canvas`** example for the full bar chart, and the **`particles`** example for the
-continuous-ticker side.
+See the [`canvas` example](../examples/canvas/) for the full bar chart, and the
+[`particles` example](../examples/particles/) for the continuous-ticker side.
 
 ## Movement — the model says *where*, the node says *how*
 

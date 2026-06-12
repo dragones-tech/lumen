@@ -17,7 +17,10 @@ const NAV = [
     items: [
       'event-emitter', 'dom', 'animate', 'view', 'model', 'collection', 'collection-view',
       'region', 'router', 'http', 'i18n', 'validate', 'element', 'canvas',
-    ].map((id) => ({ id, doc: id, example: id })),
+    ].map((id) => ({ id, doc: id, example: id })).concat([
+      // particles is an example of the canvas module — its own live page, same doc.
+      { id: 'particles', doc: 'canvas', example: 'particles' },
+    ]),
   },
   {
     label: { en: 'Guides', es: 'Guías' },

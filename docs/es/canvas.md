@@ -123,8 +123,8 @@ new Legend({ collection: data }).mount(aside);
 data.get('q2')?.set('value', 30);
 ```
 
-Ver el ejemplo **`canvas`** para la gráfica completa, y el ejemplo **`particles`** para el lado del
-ticker continuo.
+Ver el [ejemplo `canvas`](../examples/canvas/) para la gráfica completa, y el
+[ejemplo `particles`](../examples/particles/) para el lado del ticker continuo.
 
 ## Movimiento — el modelo dice *dónde*, el nodo dice *cómo*
 
