@@ -23,7 +23,9 @@ Datos observables de una sola entidad (un usuario, un todo, un ajuste). Se empar
 |---|---|
 | `new Model(data)` | Crea con atributos iniciales (copiados, no referenciados). |
 | `get(key)` / `get('a.b.c')` | Lee un atributo, o un valor anidado por dot-path (rama faltante → `undefined`). |
+| `has(key)` / `has('a.b.c')` | Si el atributo **existe** (aunque su valor sea `undefined`). Soporta dot-path. |
 | `set(key, value)` / `set('a.b.c', value)` / `set(patch)` | Escribe un atributo, un dot-path anidado (inmutable, crea ramas faltantes), o fusiona un objeto parcial. Devuelve `this`. |
+| `unset(key)` / `unset('a.b.c')` | Elimina un atributo (no es lo mismo que ponerlo en `undefined`). Emite `change`. No-op si no está. Devuelve `this`. |
 | `on(event, handler, { signal? })` | Suscribe. Devuelve una función para desuscribirse. |
 | `once(event, handler, { signal? })` | Suscribe para una sola emisión. |
 | `off(event, handler)` | Desuscribe. |
@@ -129,6 +131,30 @@ anidamiento sin cambios — `revert()` restaura el valor profundo y `commit()` l
 > Los dot-paths aplican a las formas `get(path)` / `set(path, value)`. Las claves de un **objeto
 > patch** (`set({ 'a.b': 1 })`) se toman **literalmente** — eso crea una clave llamada `'a.b'`,
 > a propósito.
+
+## Presencia — `has` y `unset`
+
+`has` responde "¿existe este atributo?" — una pregunta distinta de "¿cuál es su valor?".
+Un campo puesto en `undefined` sí *existe*; uno que nunca se asignó, no:
+
+```js
+const m = new Model({ name: 'Ada', nickname: undefined });
+m.has('name');      // true
+m.has('nickname');  // true  — presente, aunque su valor sea undefined
+m.has('age');       // false — nunca se asignó
+m.get('age');       // undefined  ← mismo valor que nickname, pero has() los distingue
+```
+
+`unset` elimina de verdad una clave — a diferencia de `set(key, undefined)`, que la mantiene
+presente. Emite `change:<clave>`/`change` como cualquier edición, es un no-op silencioso si la
+clave no estaba, y ambos soportan dot-path:
+
+```js
+m.unset('nickname');        // dispara change:nickname + change
+m.has('nickname');          // false
+m.toJSON();                 // { name: 'Ada' } — eliminado
+m.unset('user.address.zip'); // quita la hoja de forma inmutable, dispara change:user
+```
 
 ## Seguimiento de cambios — ediciones sin guardar
 

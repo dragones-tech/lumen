@@ -195,6 +195,45 @@ export class Collection {
     return [...this.models].sort(compare);
   }
 
+  // ---- Dirty tracking (aggregate, delegated to each model) ----
+
+  /**
+   * Whether **any** model has unsaved edits — sugar over `models.some(m => m.isDirty())`.
+   * Pairs with the bubbled `change` event: subscribe to `change` and re-read `isDirty()` to
+   * drive a "Save all" button without bookkeeping. @returns {boolean}
+   */
+  isDirty() {
+    return this.models.some((m) => m.isDirty());
+  }
+
+  /**
+   * The models with unsaved edits (a new array). Handy for per-row "edited" markers or to
+   * build a batch payload of just what changed. @returns {M[]}
+   */
+  changed() {
+    return this.models.filter((m) => m.isDirty());
+  }
+
+  /**
+   * `commit()` every model — adopt current values as the new clean baseline across the list,
+   * e.g. after a successful batch save. Emits nothing (no observable value changed). Returns `this`.
+   * @returns {this}
+   */
+  commitAll() {
+    for (const m of this.models) m.commit();
+    return this;
+  }
+
+  /**
+   * `revert()` every model — discard unsaved edits across the list. Each revert goes through
+   * the model's `set`, so it **bubbles** a `change` here and views update surgically. Returns `this`.
+   * @returns {this}
+   */
+  revertAll() {
+    for (const m of this.models) m.revert();
+    return this;
+  }
+
   // ---- Events ----
 
   /**

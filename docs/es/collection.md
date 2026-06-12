@@ -31,6 +31,8 @@ Una lista ordenada de `Model`s con eventos estructurales. Se empareja con `Colle
 | `where(attrs)` | Array nuevo de modelos que coinciden con todos los atributos. |
 | `filter(fn)` / `map(fn)` / `forEach(fn)` | Estándar, sin mutar. |
 | `sort(compare)` | Una **copia ordenada** — no reordena la colección. |
+| `isDirty()` / `changed()` | Si algún modelo tiene ediciones sin guardar / el array de los que sí. |
+| `commitAll()` / `revertAll()` | `commit()` / `revert()` en cada modelo (guardar / descartar en lote). Devuelve `this`. |
 | `on/once/off(event, handler, { signal? })` | Suscribe / desuscribe. |
 | `toJSON()` | Array con los datos de cada modelo. |
 | `for…of` | Itera los modelos. |
@@ -62,6 +64,27 @@ todos.where({ done: false });                       // [model b, model c]
 todos.sort((a, b) => a.get('text') < b.get('text') ? -1 : 1); // una COPIA ordenada
 todos.map((m) => m.get('text'));                    // sigue ['a','b','c'] — sin cambios
 ```
+
+## Lista editable — dirty tracking agregado
+
+Apoyándose en el [seguimiento de cambios](model.md#seguimiento-de-cambios--ediciones-sin-guardar)
+de cada modelo y en el `change` propagado, la colección responde "¿la lista entera tiene ediciones
+sin guardar?" y guarda/descarta en lote — justo lo que necesita una tabla editable:
+
+```js
+todos.isDirty();        // true si CUALQUIER modelo tiene ediciones sin guardar
+todos.changed();        // los modelos que cambiaron — para marcadores por fila
+
+// Un solo handler mantiene honesto el botón Guardar-todo mientras el usuario edita o descarta:
+todos.on('change', () => saveAllBtn.disabled = !todos.isDirty());
+
+todos.revertAll();      // descartar — cada revert propaga change, así el botón se actualiza
+await api.saveAll(todos.toJSON());
+todos.commitAll();      // re-basa la lista entera — isDirty() vuelve a ser false
+```
+
+`revertAll()` revierte vía el `set` de cada modelo, así propaga `change` y las vistas reaccionan;
+`commitAll()` no emite nada (ningún valor observable cambió) — recalcula justo después de llamarlo.
 
 ## Tipalo
 

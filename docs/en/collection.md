@@ -31,6 +31,8 @@ An ordered list of `Model`s with structural events. It pairs with `CollectionVie
 | `where(attrs)` | New array of models matching all attributes. |
 | `filter(fn)` / `map(fn)` / `forEach(fn)` | Standard, non-mutating. |
 | `sort(compare)` | A **sorted copy** — does not reorder the collection. |
+| `isDirty()` / `changed()` | Whether any model has unsaved edits / the array of models that do. |
+| `commitAll()` / `revertAll()` | `commit()` / `revert()` every model (batch save / discard). Returns `this`. |
 | `on/once/off(event, handler, { signal? })` | Subscribe / unsubscribe. |
 | `toJSON()` | Array of each model's data. |
 | `for…of` | Iterates the models. |
@@ -62,6 +64,27 @@ todos.where({ done: false });                       // [model b, model c]
 todos.sort((a, b) => a.get('text') < b.get('text') ? -1 : 1); // a sorted COPY
 todos.map((m) => m.get('text'));                    // still ['a','b','c'] — unchanged
 ```
+
+## Editable list — aggregate dirty tracking
+
+Building on each model's [dirty tracking](model.md#dirty-tracking--unsaved-edits) and the bubbled
+`change`, the collection answers "does the whole list have unsaved edits?" and saves/discards in
+batch — exactly what an editable table needs:
+
+```js
+todos.isDirty();        // true if ANY model has unsaved edits
+todos.changed();        // the models that changed — for per-row markers
+
+// One handler keeps the Save-all button honest as the user edits or discards:
+todos.on('change', () => saveAllBtn.disabled = !todos.isDirty());
+
+todos.revertAll();      // discard — each revert bubbles change, so the button updates
+await api.saveAll(todos.toJSON());
+todos.commitAll();      // re-baseline the whole list — isDirty() is false again
+```
+
+`revertAll()` reverts through each model's `set`, so it bubbles `change` and views react;
+`commitAll()` emits nothing (no observable value changed) — recompute right after the call.
 
 ## Type it
 

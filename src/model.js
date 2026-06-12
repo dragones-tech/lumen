@@ -72,6 +72,21 @@ export class Model {
   }
 
   /**
+   * Whether an attribute **exists** — distinct from its value being `undefined`. `has('x')` is
+   * `true` even when `x` is `undefined`/`null`/`0`/`''`; it is `false` only when the key was
+   * never set. Accepts a dot-path (`has('user.address.city')`), `false` if any branch is missing.
+   *
+   * @param {keyof Data | (string & {})} key - An attribute name or dot-path.
+   * @returns {boolean}
+   */
+  has(key) {
+    if (typeof key === 'string' && key.includes('.')) {
+      return hasPath(this.data, key.split('.'));
+    }
+    return Object.prototype.hasOwnProperty.call(this.data, key);
+  }
+
+  /**
    * Set one attribute, a nested **dot-path**, or merge a partial object. Only values that
    * actually changed (strict `!==`) are written and announced. New keys are fine — setting a
    * key that wasn't in the initial data never throws.
@@ -113,6 +128,32 @@ export class Model {
       }
     }
     if (changed.length) this._events.emit('change', { keys: changed, model: this });
+    return this;
+  }
+
+  /**
+   * Remove an attribute entirely — not the same as `set(key, undefined)`, which keeps the key
+   * present. After `unset`, `has(key)` is `false` and `toJSON()` omits it. Emits
+   * `change:<key>` (`{ value: undefined, previous, model }`) and `change`, so views react like
+   * any other change. No-op (and silent) if the key/path wasn't there. A dot-path removes the
+   * leaf immutably and emits on the path **root** (`change:user`), mirroring `set`.
+   *
+   * @param {keyof Data | (string & {})} key - An attribute name or dot-path.
+   * @returns {this}
+   */
+  unset(key) {
+    if (typeof key === 'string' && key.includes('.')) {
+      const parts = key.split('.');
+      if (!hasPath(this.data, parts)) return this; // no-op — nothing to remove
+      const rootKey = parts[0];
+      const branch = cloneWithout(/** @type {any} */ (this.data)[rootKey], parts.slice(1));
+      return this.set(/** @type {keyof Data} */ (rootKey), branch);
+    }
+    if (!Object.prototype.hasOwnProperty.call(this.data, key)) return this;
+    const previous = /** @type {any} */ (this.data)[key];
+    delete /** @type {any} */ (this.data)[key];
+    this._events.emit(`change:${String(key)}`, { value: undefined, previous, model: this });
+    this._events.emit('change', { keys: [key], model: this });
     return this;
   }
 
@@ -260,6 +301,43 @@ function readPath(obj, parts) {
     node = node[part];
   }
   return node;
+}
+
+/**
+ * Whether an own-property exists at every segment of `parts` — `false` the moment a branch is
+ * missing or isn't an object. Distinguishes "present but `undefined`" from "absent".
+ * @param {any} obj
+ * @param {string[]} parts
+ * @returns {boolean}
+ */
+function hasPath(obj, parts) {
+  let node = obj;
+  for (const part of parts) {
+    if (node == null || typeof node !== 'object') return false;
+    if (!Object.prototype.hasOwnProperty.call(node, part)) return false;
+    node = node[part];
+  }
+  return true;
+}
+
+/**
+ * Return a structurally-shared **clone** of `node` with the value at `parts` **removed** —
+ * cloning each branch along the way (array elements are spliced out, object keys deleted).
+ * @param {any} node
+ * @param {string[]} parts - Remaining path segments (length ≥ 1).
+ * @returns {any}
+ */
+function cloneWithout(node, parts) {
+  const base = node != null && typeof node === 'object' ? node : {};
+  const clone = Array.isArray(base) ? [...base] : { ...base };
+  const [head, ...rest] = parts;
+  if (rest.length === 0) {
+    if (Array.isArray(clone)) clone.splice(Number(head), 1);
+    else delete clone[head];
+  } else {
+    clone[head] = cloneWithout(base[head], rest);
+  }
+  return clone;
 }
 
 /**

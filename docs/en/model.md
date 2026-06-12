@@ -23,7 +23,9 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 |---|---|
 | `new Model(data)` | Create with initial attributes (copied, not referenced). |
 | `get(key)` / `get('a.b.c')` | Read an attribute, or a nested value by dot-path (missing branch → `undefined`). |
+| `has(key)` / `has('a.b.c')` | Whether the attribute **exists** (even if its value is `undefined`). Dot-path aware. |
 | `set(key, value)` / `set('a.b.c', value)` / `set(patch)` | Write one attribute, a nested dot-path (immutable, creates missing branches), or merge a partial object. Returns `this`. |
+| `unset(key)` / `unset('a.b.c')` | Remove an attribute (not the same as setting `undefined`). Emits `change`. No-op if absent. Returns `this`. |
 | `on(event, handler, { signal? })` | Subscribe. Returns an unsubscribe function. |
 | `once(event, handler, { signal? })` | Subscribe for a single emission. |
 | `off(event, handler)` | Unsubscribe. |
@@ -126,6 +128,30 @@ works through nesting unchanged — `revert()` restores the deep value, `commit(
 
 > Dot-paths apply to the `get(path)` / `set(path, value)` forms. Keys of a **patch object**
 > (`set({ 'a.b': 1 })`) are taken **literally** — that creates a key named `'a.b'`, by design.
+
+## Presence — `has` and `unset`
+
+`has` answers "does this attribute exist?" — a different question from "what is its value?".
+A field set to `undefined` still *exists*; a field that was never set does not:
+
+```js
+const m = new Model({ name: 'Ada', nickname: undefined });
+m.has('name');      // true
+m.has('nickname');  // true  — present, even though its value is undefined
+m.has('age');       // false — never set
+m.get('age');       // undefined  ← same value as nickname, but has() tells them apart
+```
+
+`unset` truly removes a key — unlike `set(key, undefined)`, which keeps it present. It emits
+`change:<key>`/`change` like any edit, is a silent no-op if the key wasn't there, and both
+are dot-path aware:
+
+```js
+m.unset('nickname');        // fires change:nickname + change
+m.has('nickname');          // false
+m.toJSON();                 // { name: 'Ada' } — gone
+m.unset('user.address.zip'); // removes the leaf immutably, fires change:user
+```
 
 ## Dirty tracking — unsaved edits
 
