@@ -1,24 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="dark" data-theme="miasma">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumen · Canvas spike — one state, two projections</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
   <style>
-    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
-    h1 { font-size: 1.4rem; }
-    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
-    .muted { color: #666; }
-    button { font: inherit; border: 1px solid #d0d5dd; background: #fff; border-radius: 8px; padding: .4rem .7rem; cursor: pointer; }
-    button:hover { background: #f1f3f5; }
+    body { max-width: 46rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 2rem; }
+    .muted { color: var(--text-muted); }
     .controls { display: flex; gap: .5rem; margin: .6rem 0 1rem; }
-    canvas { border: 1px solid #e6e8eb; border-radius: 10px; background: #fcfcfd; display: block; }
+    canvas { border: var(--border-width) solid var(--border); border-radius: var(--radius); background: var(--surface); display: block; }
     .legend ul { list-style: none; padding: 0; margin: .6rem 0; display: flex; flex-wrap: wrap; gap: .4rem; }
-    .legend li { display: flex; align-items: center; gap: .5rem; border: 1px solid #e6e8eb; border-radius: 999px;
-                 padding: .25rem .3rem .25rem .6rem; background: #fff; }
+    .legend li { display: flex; align-items: center; gap: .5rem; border: var(--border-width) solid var(--border); border-radius: 999px;
+                 padding: .25rem .3rem .25rem .6rem; background: var(--surface); }
     .legend .dot { width: .7rem; height: .7rem; border-radius: 50%; }
     .legend .v { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 1.6rem; text-align: right; }
-    .legend .x { border: none; background: #f1f3f5; border-radius: 50%; width: 1.4rem; height: 1.4rem; line-height: 1; padding: 0; }
+    .legend .x { border: none; background: color-mix(in oklab, transparent, var(--text) 14%); border-radius: 50%; width: 1.4rem; height: 1.4rem; line-height: 1; padding: 0; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -30,7 +30,7 @@
   </p>
 
   <div class="controls">
-    <button data-ref="rand">Randomize</button>
+    <button data-variant="primary" data-ref="rand">Randomize</button>
     <button data-ref="add">Add quarter</button>
   </div>
 
