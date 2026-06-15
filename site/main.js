@@ -157,7 +157,7 @@ class DocPage extends View {
       wrap.append(cap);
     }
     const frame = document.createElement('iframe');
-    frame.src = `../examples/${ex}/`;
+    frame.src = `../examples/${ex}/?v=scc1`;
     frame.title = ex;
     frame.className = 'ex-frame';
     if (count > 1) {
@@ -180,7 +180,7 @@ class DocPage extends View {
       frame.classList.add('ex-frame--tall'); // single: tall + sticky
     }
     const open = document.createElement('a');
-    open.href = `../examples/${ex}/`;
+    open.href = `../examples/${ex}/?v=scc1`;
     open.target = '_blank';
     open.className = 'ex-open';
     open.textContent = count > 1 ? `${ex} — ${I18N[lang].open}` : I18N[lang].open;
