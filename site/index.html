@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumen · docs</title>
 
+  <!-- highlight.js theme FIRST, so site.css (loaded after) can re-tint it to the miasma palette. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+
   <!-- scc (Scoped Cascade CSS) + the miasma theme + the docs shell layout. No build. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
   <link rel="stylesheet" href="../assets/miasma.css" />
-  <link rel="stylesheet" href="./site.css?v=2" />
+  <link rel="stylesheet" href="./site.css?v=3" />
 
-  <!-- highlight.js for syntax colors in the rendered code blocks. -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <!-- highlight.js engine + extra languages (server templates used in the structure guide). -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- extra languages not in the common bundle (server templates used in the structure guide). -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/erb.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/django.min.js"></script>
 
