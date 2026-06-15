@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="dark" data-theme="miasma">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,24 +9,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
+
   <style>
-    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 48rem; padding: 0 1rem; }
-    h1 { font-size: 1.4rem; }
-    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
-    pre.code { background:#0d1117; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
-    .muted { color:#666; }
-    .bar { display:flex; align-items:center; justify-content:space-between; gap:1rem;
-           border:1px solid #cdd2d8; border-radius:10px; padding:.6rem .9rem; background:#f6f8fa; }
-    .bar h3 { margin:0; font-size:1rem; }
-    .right { display:flex; align-items:center; gap:.6rem; }
-    .badge { background:#111; color:#fff; border-radius:999px; padding:.2rem .7rem; font-size:.9rem; }
-    button { font: inherit; padding:.35rem .8rem; cursor:pointer; border:1px solid #cdd2d8; border-radius:8px; background:#fff; }
-    .product { display:flex; align-items:center; justify-content:space-between; gap:1rem;
-               border:1px solid #e2e6ea; border-radius:8px; padding:.6rem .9rem; margin:.4rem 0; }
-    .product .price { color:#6b7280; }
-    .toasts { position:fixed; bottom:1rem; right:1rem; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.4rem; }
-    .toast { background:#111; color:#fff; padding:.5rem .9rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.2); }
-    .tok-key { color:#ff7b72; }
+    body { max-width: 48rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 2rem; }
+    .muted { color: var(--text-muted); }
+    pre.code { background: #1a1a17; padding: 1rem; border-radius: var(--radius); overflow: auto; font-size: .85rem; line-height: 1.5; }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+           border: var(--border-width) solid var(--border); border-radius: var(--radius); padding: .6rem .9rem; background: var(--surface); }
+    .bar h3 { margin: 0; font-size: 1rem; }
+    .right { display: flex; align-items: center; gap: .6rem; }
+    .product { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+               border: var(--border-width) solid var(--border); border-radius: var(--radius); padding: .6rem .9rem; margin: .4rem 0; background: var(--surface); }
+    .product .price { color: var(--text-muted); }
+    .notices { position: fixed; bottom: 1rem; right: 1rem; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .4rem; z-index: 50; }
+    .notice { background: var(--accent); color: var(--accent-fg); padding: .5rem .9rem; border-radius: var(--radius); box-shadow: var(--shadow); }
   </style>
 </head>
 <body>
@@ -37,8 +37,8 @@
     <div class="bar">
       <h3>🛍 Lumen Shop</h3>
       <div class="right">
-        <span class="badge">cart: <b data-ref="count">0</b></span>
-        <button data-ref="clear">clear</button>
+        <span class="badge" data-variant="accent">cart: <b data-ref="count">0</b></span>
+        <button data-variant="ghost" data-ref="clear">clear</button>
       </div>
     </div>
   </template>
@@ -48,11 +48,11 @@
   <template id="product">
     <div class="product">
       <span data-ref="name"></span>
-      <span class="right"><span class="price" data-ref="price"></span><button data-ref="add">add</button></span>
+      <span class="right"><span class="price" data-ref="price"></span><button data-variant="primary" data-ref="add">add</button></span>
     </div>
   </template>
   <template id="toasts">
-    <ul class="toasts"></ul>
+    <ul class="notices"></ul>
   </template>
 
   <h2>Code</h2>
@@ -92,7 +92,7 @@ class Toasts extends View {
   static template = '#toasts';
   onMount() { bus.on('notify', this.show, { signal: this.signal }); }   // listens on the app bus
   show = ({ text }) => {
-    const li = Object.assign(document.createElement('li'), { className: 'toast', textContent: text });
+    const li = Object.assign(document.createElement('li'), { className: 'notice', textContent: text });
     this.el.appendChild(li);
     setTimeout(() => li.remove(), 2000);
   };
@@ -155,7 +155,7 @@ new Toasts().mount(document.querySelector('#notices'));</code></pre>
       static template = '#toasts';
       onMount() { bus.on('notify', this.show, { signal: this.signal }); }   // listens on the app bus
       show = ({ text }) => {
-        const li = Object.assign(document.createElement('li'), { className: 'toast', textContent: text });
+        const li = Object.assign(document.createElement('li'), { className: 'notice', textContent: text });
         this.el.appendChild(li);
         setTimeout(() => li.remove(), 2000);
       };

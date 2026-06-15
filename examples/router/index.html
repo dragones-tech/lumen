@@ -1,20 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="dark" data-theme="miasma">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumen · Router example</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
   <style>
-    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
-    h1 { font-size: 1.4rem; }
-    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
-    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
-    .muted { color: #666; }
+    body { max-width: 46rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 2rem; }
+    .muted { color: var(--text-muted); }
     nav a { margin-right: .8rem; }
-    #outlet { border: 1px dashed #cdd2d8; border-radius: 10px; min-height: 7rem; margin-top: .6rem; padding: .2rem; }
-    .screen { padding: 1.2rem; border-radius: 8px; color: #fff; }
+    #outlet { border: var(--border-width) dashed var(--border); border-radius: var(--radius); min-height: 7rem; margin-top: .6rem; padding: .2rem; }
+    .screen { padding: 1.2rem; border-radius: var(--radius); color: #fff; }
     .screen h3 { margin: 0 0 .3rem; }
-    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+    pre.code { background: #1a1a17; color: #d9d4c2; padding: 1rem; border-radius: var(--radius); overflow: auto; font-size: .85rem; line-height: 1.5; }
+    .tok-key { color: #c98a45; } .tok-fn { color: #c8a45c; } .tok-str { color: #78824b; } .tok-com { color: #6b6b58; }
   </style>
 </head>
 <body>
