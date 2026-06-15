@@ -101,3 +101,13 @@ form.cluster input { flex: 1; }
 
 /* the landing demo's "done" toggle (demo.js toggles .line-through) */
 .line-through { text-decoration: line-through; opacity: 0.55; }
+
+/* Re-tint highlight.js (github-dark) to the miasma palette, so rendered-doc code blocks
+   match the warm theme and the examples' own listings (same token colors). */
+.doc-body pre, .code-block, .hljs { background: #1a1a17; }
+.hljs { color: #d9d4c2; }
+.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-type, .hljs-meta { color: #c98a45; }
+.hljs-title, .hljs-title.function_, .hljs-section, .hljs-name { color: #c8a45c; }
+.hljs-string, .hljs-regexp, .hljs-symbol, .hljs-addition { color: #78824b; }
+.hljs-number, .hljs-attr, .hljs-attribute, .hljs-property, .hljs-variable { color: #c8a45c; }
+.hljs-comment, .hljs-quote, .hljs-deletion { color: #6b6b58; }
