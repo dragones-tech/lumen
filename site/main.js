@@ -160,6 +160,10 @@ class DocPage extends View {
     frame.src = `../examples/${ex}/?v=scc2`;
     frame.title = ex;
     frame.className = 'ex-frame';
+    frame.addEventListener('load', () => {
+      // same-origin: make the embedded example follow the site's light/dark mode
+      try { frame.contentDocument.documentElement.dataset.mode = document.documentElement.dataset.mode; } catch {}
+    });
     if (count > 1) {
       // stacked examples (same-origin): size each iframe to its content, refit if it reflows.
       frame.style.height = '36rem'; // fallback until measured
@@ -225,6 +229,8 @@ class DocsApp extends View {
     this.sidebar = new Sidebar({ lang: this.lang });
     this.regions.sidebar.show(this.sidebar);
     this.listen(this.ui.lang, 'click', this.toggleLang);
+    this.listen(this.ui.mode, 'click', this.toggleMode);       // light/dark switch
+    this.refreshModeIcon();
     this.listen(this.ui.menu, 'click', this.toggleMenu);       // mobile: open/close the sidebar drawer
     this.listen(this.ui.backdrop, 'click', this.closeMenu);
 
@@ -255,6 +261,23 @@ class DocsApp extends View {
   closeMenu = () => {
     this.ui.sidebar.classList.remove('open');
     this.ui.backdrop.classList.remove('open');
+  };
+
+  // Light/dark switch. scc reads `data-mode` on <html> via light-dark(); we persist the choice
+  // and propagate it into the same-origin example iframes so they follow the site.
+  toggleMode = () => {
+    const next = document.documentElement.dataset.mode === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.mode = next;
+    try { localStorage.setItem('lumen-mode', next); } catch {}
+    this.refreshModeIcon();
+    for (const f of document.querySelectorAll('iframe')) {
+      try { f.contentDocument.documentElement.dataset.mode = next; } catch {}
+    }
+  };
+  refreshModeIcon = () => {
+    const dark = document.documentElement.dataset.mode !== 'light';
+    this.ui.mode.textContent = dark ? '🌙' : '☀️';
+    this.ui.mode.setAttribute('aria-label', dark ? 'Switch to light' : 'Switch to dark');
   };
 
   toggleLang = () => {
