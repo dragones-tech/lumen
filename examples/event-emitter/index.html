@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="dark" data-theme="miasma">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumen · EventEmitter example</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
   <style>
-    body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; padding: 0 1rem; }
-    h1 { font-size: 1.4rem; }
-    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; color: #555; margin: 1.6rem 0 .4rem; }
-    button { font: inherit; padding: .4rem .8rem; margin: 0 .4rem .4rem 0; cursor: pointer; }
-    pre { padding: 1rem; border-radius: 8px; overflow: auto; }
-    pre.code { background:#0d1117; color:#e6edf3; padding:1rem; border-radius:8px; overflow:auto; font-size:.85rem; line-height:1.5; }
-    pre.log { background: #111; color: #b6f0b6; min-height: 8rem; }
-    .muted { color: #666; }
-    .tok-key { color:#ff7b72; } .tok-fn { color:#d2a8ff; } .tok-str { color:#a5d6ff; } .tok-com { color:#8b949e; }
+    body { max-width: 44rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 2rem; }
+    .muted { color: var(--text-muted); }
+    pre.code { background: #1a1a17; color: #d9d4c2; padding: 1rem; border-radius: var(--radius); overflow: auto; font-size: .85rem; line-height: 1.5; }
+    pre.log { background: #14140f; color: var(--success); padding: 1rem; border-radius: var(--radius); min-height: 8rem; overflow: auto; }
+    .tok-key { color: #c98a45; } .tok-fn { color: #c8a45c; } .tok-str { color: #78824b; } .tok-com { color: #6b6b58; }
   </style>
 </head>
 <body>
@@ -41,12 +41,12 @@ ac.<span class="tok-fn">abort</span>(); <span class="tok-com">// removes BOTH at
   <!-- ===== The running demo ===== -->
   <h2>Run it</h2>
   <p class="muted"><b>ping</b> is subscribed on its own (no signal). <b>tick</b> &amp; <b>tock</b> are bound to an AbortController. Each is cleaned up by its own path — abort only removes tick &amp; tock, never ping.</p>
-  <div>
-    <button data-el="ping">emit "ping"</button>
+  <div class="cluster">
+    <button data-variant="primary" data-el="ping">emit "ping"</button>
     <button data-el="off">unsubscribe ping (via off())</button>
     <button data-el="tickTock">subscribe tick+tock (with signal)</button>
-    <button data-el="abort">abort → remove tick+tock only</button>
-    <button data-el="clear">clear log</button>
+    <button data-variant="danger" data-el="abort">abort → remove tick+tock only</button>
+    <button data-variant="ghost" data-el="clear">clear log</button>
   </div>
 
   <pre class="log" data-el="log"></pre>
