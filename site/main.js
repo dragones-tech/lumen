@@ -52,7 +52,7 @@ const I18N = {
     introBody:
       '## Start here\n' +
       'Pick a topic on the left. Each page shows the docs and a **live example running** below — the same example you can open standalone.\n\n' +
-      'This site is itself built with Lumen: a `View` shell with `static regions`, a `Router` for the pages, the docs rendered from bilingual markdown, and styled with Tailwind. No build step.\n\n' +
+      'This site is itself built with Lumen: a `View` shell with `static regions`, a `Router` for the pages, the docs rendered from bilingual markdown, and styled with [scc](https://github.com/dragones-tech/scc). No build step.\n\n' +
       '- **No build.** Native ES modules.\n' +
       '- **No magic.** No globals, no hidden proxies, explicit lifecycle.\n' +
       '- **OOP-first.** A view is a class you extend.\n',
@@ -68,16 +68,12 @@ const I18N = {
     introBody:
       '## Empieza aquí\n' +
       'Elige un tema a la izquierda. Cada página muestra la documentación y un **ejemplo en vivo corriendo** abajo — el mismo que puedes abrir por separado.\n\n' +
-      'Este sitio está hecho con Lumen: un shell `View` con `static regions`, un `Router` para las páginas, los docs renderizados desde markdown bilingüe, y estilado con Tailwind. Sin build.\n\n' +
+      'Este sitio está hecho con Lumen: un shell `View` con `static regions`, un `Router` para las páginas, los docs renderizados desde markdown bilingüe, y estilado con [scc](https://github.com/dragones-tech/scc). Sin build.\n\n' +
       '- **Sin build.** Módulos ES nativos.\n' +
       '- **Sin magia.** Sin globals, sin proxies ocultos, ciclo de vida explícito.\n' +
       '- **OOP primero.** Una vista es una clase que extiendes.\n',
   },
 };
-
-const LINK_BASE = 'block px-3 py-1.5 rounded-md text-sm';
-const LINK_NORMAL = 'text-slate-700 hover:bg-slate-100';
-const LINK_ACTIVE = 'bg-blue-600 text-white';
 
 /** Apply highlight.js to every code block inside a rendered container (if loaded). */
 function highlightCode(root) {
@@ -101,7 +97,7 @@ class Sidebar extends View {
     for (const section of NAV) {
       const label = document.createElement('div');
       label.textContent = section.label[this.lang];
-      label.className = 'text-xs uppercase tracking-wider text-slate-400 px-3 pt-4 pb-1';
+      label.className = 'nav-section';
       children.push(label);
       for (const item of section.items) children.push(this._link(item.id, item.id, `#/${item.id}`));
     }
@@ -113,7 +109,8 @@ class Sidebar extends View {
     a.href = href;
     a.textContent = text;
     a.dataset.id = id;
-    a.className = `${LINK_BASE} ${id === this.active ? LINK_ACTIVE : LINK_NORMAL}`;
+    a.className = 'nav-link';
+    if (id === this.active) a.setAttribute('aria-current', 'page');
     return a;
   }
 }
@@ -127,16 +124,15 @@ class DocPage extends View {
     const examples = item.examples ?? (item.example ? [item.example] : []);
     if (examples.length) {
       // two columns: example(s) on the left, docs on the right
-      this.ui.layout.className = 'grid lg:grid-cols-2 gap-8 items-start';
+      this.ui.layout.className = 'doc-layout cols';
       this.ui.exWrap.hidden = false;
       // a single tall example stays sticky; stacked examples scroll with the page
-      this.ui.exWrap.className =
-        examples.length > 1 ? 'min-w-0 space-y-5' : 'min-w-0 lg:sticky lg:top-[4.5rem] space-y-4';
+      this.ui.exWrap.className = examples.length > 1 ? 'ex-wrap' : 'ex-wrap sticky';
       this.ui.exLabel.textContent = I18N[lang].example + (examples.length > 1 ? 's' : '');
       this.ui.exFrames.replaceChildren(...examples.map((ex) => this.exBlock(ex, lang, examples.length)));
     } else {
       // single readable column
-      this.ui.layout.className = 'max-w-3xl';
+      this.ui.layout.className = 'doc-layout single';
       this.ui.exWrap.hidden = true;
     }
     try {
@@ -156,14 +152,14 @@ class DocPage extends View {
     const wrap = document.createElement('div');
     if (count > 1) {
       const cap = document.createElement('div');
-      cap.className = 'text-xs text-slate-500 mb-1';
+      cap.className = 'ex-cap';
       cap.textContent = ex;
       wrap.append(cap);
     }
     const frame = document.createElement('iframe');
     frame.src = `../examples/${ex}/`;
     frame.title = ex;
-    frame.className = 'w-full border border-slate-200 rounded-xl bg-white';
+    frame.className = 'ex-frame';
     if (count > 1) {
       // stacked examples (same-origin): size each iframe to its content, refit if it reflows.
       frame.style.height = '36rem'; // fallback until measured
@@ -181,12 +177,12 @@ class DocPage extends View {
         } catch {}
       });
     } else {
-      frame.classList.add('h-[26rem]', 'lg:h-[calc(100vh-9rem)]'); // single: tall + sticky
+      frame.classList.add('ex-frame--tall'); // single: tall + sticky
     }
     const open = document.createElement('a');
     open.href = `../examples/${ex}/`;
     open.target = '_blank';
-    open.className = 'inline-block mt-2 text-sm text-blue-600 hover:underline';
+    open.className = 'ex-open';
     open.textContent = count > 1 ? `${ex} — ${I18N[lang].open}` : I18N[lang].open;
     wrap.append(frame, open);
     return wrap;
@@ -203,7 +199,7 @@ class Intro extends View {
     this.ui.chips.replaceChildren(...t.chips.map((c) => {
       const s = document.createElement('span');
       s.textContent = c;
-      s.className = 'rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1';
+      s.className = 'chip';
       return s;
     }));
     this.addChild(createTodoApp(this.props.lang), this.ui.demo);
@@ -251,14 +247,14 @@ class DocsApp extends View {
     );
   };
 
-  // Mobile sidebar drawer. On desktop the `lg:` classes keep it visible regardless.
+  // Mobile sidebar drawer. On desktop the layout keeps it visible regardless (see site.css).
   toggleMenu = () => {
-    const closed = this.ui.sidebar.classList.toggle('-translate-x-full');
-    this.ui.backdrop.classList.toggle('hidden', closed);
+    const open = this.ui.sidebar.classList.toggle('open');
+    this.ui.backdrop.classList.toggle('open', open);
   };
   closeMenu = () => {
-    this.ui.sidebar.classList.add('-translate-x-full');
-    this.ui.backdrop.classList.add('hidden');
+    this.ui.sidebar.classList.remove('open');
+    this.ui.backdrop.classList.remove('open');
   };
 
   toggleLang = () => {

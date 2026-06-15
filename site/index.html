@@ -1,12 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-mode="dark" data-theme="miasma">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lumen · docs</title>
 
-  <!-- Tailwind Play CDN + Typography plugin (for the rendered markdown `prose`). No build. -->
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <!-- scc (Scoped Cascade CSS) + the miasma theme + the docs shell layout. No build. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../assets/miasma.css" />
+  <link rel="stylesheet" href="./site.css" />
 
   <!-- highlight.js for syntax colors in the rendered code blocks. -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
@@ -37,89 +39,83 @@
   <link rel="modulepreload" href="../src/validate.js" />
   <link rel="modulepreload" href="../src/element.js" />
 </head>
-<body class="text-slate-800">
+<body>
   <!-- ===== App shell (a View with regions) ===== -->
   <template id="shell">
-    <div class="min-h-screen grid grid-cols-1 lg:grid-cols-[15rem_1fr] grid-rows-[auto_1fr]">
-      <header class="col-span-full flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-slate-200 sticky top-0 bg-white/90 backdrop-blur z-40">
-        <button data-ref="menu" class="lg:hidden p-1 -ml-1 text-slate-600 hover:text-slate-900" aria-label="Toggle menu">
-          <svg class="pointer-events-none" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    <div class="shell">
+      <header class="shell-header">
+        <button data-ref="menu" class="menu-btn" aria-label="Toggle menu">
+          <svg style="pointer-events:none" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
-        <span class="font-extrabold text-lg tracking-tight">Lumen <small data-ref="tagline" class="hidden sm:inline text-slate-400 font-medium text-xs ml-1"></small></span>
-        <span class="flex-1"></span>
+        <span class="shell-title">Lumen <small data-ref="tagline"></small></span>
+        <span class="shell-spacer"></span>
         <a href="https://github.com/dragones-tech/lumen" target="_blank" rel="noopener"
-           title="View on GitHub" aria-label="View on GitHub"
-           class="text-slate-500 hover:text-slate-900 transition-colors">
+           title="View on GitHub" aria-label="View on GitHub" class="icon-link">
           <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
           </svg>
         </a>
-        <button data-ref="lang" class="text-sm px-3 py-1 border border-slate-200 rounded-md hover:bg-slate-50">ES</button>
+        <button data-ref="lang" data-variant="ghost">ES</button>
       </header>
-      <div data-ref="backdrop" class="hidden fixed inset-0 z-20 bg-black/30 lg:hidden"></div>
-      <aside data-ref="sidebar" class="fixed lg:sticky top-[3.25rem] bottom-0 lg:bottom-auto left-0 z-30 lg:z-auto w-60 lg:w-auto bg-white border-r border-slate-200 p-3 overflow-auto -translate-x-full lg:translate-x-0 transition-transform duration-200 lg:self-start lg:h-[calc(100vh-3.25rem)]"></aside>
-      <main data-ref="content" class="p-4 sm:p-6 lg:p-8 w-full min-w-0"></main>
+      <div data-ref="backdrop" class="shell-backdrop"></div>
+      <aside data-ref="sidebar" class="shell-sidebar"></aside>
+      <main data-ref="content" class="shell-main"></main>
     </div>
   </template>
 
   <template id="sidebar">
-    <nav data-ref="nav" class="flex flex-col gap-1"></nav>
+    <nav data-ref="nav" class="nav"></nav>
   </template>
 
   <template id="doc">
-    <div data-ref="layout">
-      <div data-ref="body" class="min-w-0 prose prose-slate max-w-none prose-code:before:content-none prose-code:after:content-none prose-pre:p-0 prose-pre:bg-[#0d1117]">Loading…</div>
-      <div data-ref="exWrap" class="min-w-0 lg:sticky lg:top-[4.5rem] space-y-4">
-        <div data-ref="exLabel" class="text-xs uppercase tracking-wider text-slate-400 mb-2">Live example</div>
-        <div data-ref="exFrames" class="space-y-5"></div>
+    <div data-ref="layout" class="doc-layout">
+      <div data-ref="body" class="doc-body">Loading…</div>
+      <div data-ref="exWrap" class="ex-wrap">
+        <div data-ref="exLabel" class="ex-label">Live example</div>
+        <div data-ref="exFrames" class="ex-frames"></div>
       </div>
     </div>
   </template>
 
   <template id="intro">
     <div>
-      <!-- hero -->
-      <section class="text-center py-8">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight">Lumen</h1>
-        <p data-ref="tagline" class="text-lg text-slate-500 mt-3 max-w-xl mx-auto"></p>
-        <div data-ref="chips" class="flex flex-wrap gap-2 justify-center mt-5"></div>
+      <section class="hero">
+        <h1>Lumen</h1>
+        <p data-ref="tagline"></p>
+        <div data-ref="chips" class="chips"></div>
       </section>
 
       <!-- complete example: running app + its source -->
-      <section class="mt-2">
-        <div data-ref="demoLabel" class="text-xs uppercase tracking-wider text-slate-400 mb-2">A complete app — running</div>
-        <div class="grid lg:grid-cols-2 gap-5 items-start">
-          <div data-ref="demo" class="min-w-0"></div>
-          <pre class="min-w-0 rounded-xl bg-[#0d1117] overflow-auto text-[13px] leading-relaxed"><code class="language-js" data-ref="code"></code></pre>
+      <section>
+        <div data-ref="demoLabel" class="ex-label">A complete app — running</div>
+        <div class="demo-grid">
+          <div data-ref="demo"></div>
+          <pre class="code-block"><code class="language-js" data-ref="code"></code></pre>
         </div>
       </section>
 
-      <div data-ref="body" class="prose prose-slate max-w-3xl mt-10 prose-code:before:content-none prose-code:after:content-none prose-pre:p-0 prose-pre:bg-[#0d1117]"></div>
+      <div data-ref="body" class="doc-body" style="max-width: var(--measure); margin-top: 2.5rem"></div>
     </div>
   </template>
 
-  <!-- ===== landing demo: a complete TodoApp (Lumen + Tailwind) ===== -->
+  <!-- ===== landing demo: a complete TodoApp (Lumen + scc) ===== -->
   <template id="demo-app">
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
-      <form data-ref="form" class="flex gap-2">
-        <input data-ref="input" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a todo…" autocomplete="off" />
-        <button class="rounded-lg bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">add</button>
-      </form>
-      <ul data-ref="list" class="mt-3 space-y-2"></ul>
-      <div class="mt-3 text-xs text-slate-400"><span data-ref="count">0</span> left</div>
-    </div>
+    <article class="card">
+      <form data-ref="form" class="cluster"><input data-ref="input" placeholder="Add a todo…" autocomplete="off" /><button data-variant="primary">add</button></form>
+      <ul data-ref="list" class="stack"></ul>
+      <p><span class="badge" data-ref="count">0</span> left</p>
+    </article>
   </template>
 
   <template id="demo-item">
-    <li class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 bg-white">
-      <input type="checkbox" data-ref="check" class="size-4" />
-      <span data-ref="text" class="flex-1 text-sm"></span>
-      <button data-ref="remove" class="text-slate-400 hover:text-red-500 text-lg leading-none">&times;</button>
+    <li class="cluster" style="justify-content: space-between">
+      <label class="cluster"><input type="checkbox" data-ref="check" /> <span data-ref="text"></span></label>
+      <button data-variant="ghost" data-ref="remove">&times;</button>
     </li>
   </template>
 
   <div id="app"></div>
   <!-- ?v bumped on each main.js change → forces a fresh fetch past the CDN/browser cache. -->
-  <script type="module" src="./main.js?v=2"></script>
+  <script type="module" src="./main.js?v=3"></script>
 </body>
 </html>
