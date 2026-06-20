@@ -38,6 +38,13 @@ export class CollectionView extends View {
     this.collection = props.collection;
     /** @private @type {Map<any, View<any>>} model → child view */
     this._views = new Map();
+    /**
+     * Tail of the reconciliation queue. `addChild`/`removeChild` are async (they await the
+     * child's `animateIn`/`animateOut`), so we chain them here — a mount always finishes before
+     * the next op runs, keeping order stable and never overlapping a child's enter/leave.
+     * @private @type {Promise<any>}
+     */
+    this._tail = Promise.resolve();
   }
 
   /**
@@ -89,17 +96,41 @@ export class CollectionView extends View {
   _onReset = () => this._resetViews();
 
   /**
+   * Queue a reconciliation step after any in-flight one. Continues even if a prior step rejects,
+   * so one failed mount/unmount can't wedge the queue.
+   * @private
+   * @param {() => Promise<any>} step
+   * @returns {Promise<any>}
+   */
+  _serialize(step) {
+    this._tail = this._tail.then(step, step);
+    return this._tail;
+  }
+
+  /**
+   * Instantiate the child view for a model and record it in the index (synchronous, so `_views`
+   * always reflects the latest desired state — the DOM mount is queued separately).
    * @private
    * @param {any} model
    * @returns {View<any>}
    */
-  _addView(model) {
+  _create(model) {
     const Ctor = /** @type {typeof CollectionView} */ (this.constructor);
     const ChildView = Ctor.childView;
     if (!ChildView) throw new Error(`${Ctor.name}: set a static childView`);
     const view = new ChildView({ model, ...this.childProps(model) });
     this._views.set(model, view);
-    this.addChild(view, this.container);
+    return view;
+  }
+
+  /**
+   * @private
+   * @param {any} model
+   * @returns {View<any>}
+   */
+  _addView(model) {
+    const view = this._create(model);
+    this._serialize(() => this.addChild(view, this.container));
     return view;
   }
 
@@ -111,14 +142,19 @@ export class CollectionView extends View {
     const view = this._views.get(model);
     if (!view) return;
     this._views.delete(model);
-    this.removeChild(view);
+    this._serialize(() => this.removeChild(view));
   }
 
   /** @private */
-  async _resetViews() {
-    for (const view of [...this._views.values()]) await view.unmount();
+  _resetViews() {
+    const old = [...this._views.values()];
     this._views.clear();
-    this.children.clear();
-    this.collection.forEach((model) => this._addView(model));
+    // Build the new views now so `_views` is correct immediately; defer the DOM swap to the queue.
+    const fresh = this.collection.map((model) => this._create(model));
+    this._serialize(async () => {
+      for (const view of old) await view.unmount();
+      this.children.clear();
+      for (const view of fresh) await this.addChild(view, this.container);
+    });
   }
 }
