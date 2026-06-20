@@ -87,12 +87,14 @@ export class Router {
   }
 
   /**
-   * The current path, normalized with a leading slash and no surrounding slashes.
+   * The current path, normalized with a leading slash and no surrounding slashes. Returned
+   * raw (still percent-encoded) — params are decoded once, in `_resolve`, so a value like
+   * `%2F` is not decoded twice.
    * @returns {string}
    */
   current() {
     if (this.mode === 'history') {
-      let path = decodeURI(window.location.pathname);
+      let path = window.location.pathname;
       if (this.root !== '/' && path.startsWith(this.root)) path = path.slice(this.root.length);
       return '/' + path.replace(/^\/+|\/+$/g, '');
     }
