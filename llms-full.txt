@@ -460,6 +460,9 @@ Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onC
 | `removeChild(child)` | Untrack and unmount a child. |
 | `listen(target, type, handler, options?)` | `addEventListener` bound to `signal` (auto-removed on unmount). |
 | `observe(target, callback, options?)` | `IntersectionObserver` bound to `signal` (auto-disconnected on unmount). |
+| `onResize(target, callback, options?)` | `ResizeObserver` bound to `signal` (auto-disconnected on unmount). |
+| `onMedia(query, callback)` | `matchMedia` listener bound to `signal`; returns the `MediaQueryList` (read `.matches`). |
+| `interval(callback, ms)` | `setInterval` cleared on unmount (bound to `signal`); returns the timer id. |
 | `mount(parent, { animate? })` | `animate: false` skips `animateIn()` (used by `Region`'s View-Transition path). |
 | `unmount({ animate? })` | `animate: false` skips `animateOut()`; propagates through the cascade. |
 | `onCreate / onMount / onUnmount` | Lifecycle hooks (override). |
@@ -574,6 +577,36 @@ The callback receives the standard `(entries, observer)` arguments, so `threshol
 `rootMargin` and `observer.unobserve()` all work exactly as on the platform. No magic, no
 global document scanner — each view observes only what it asks to. See the
 [live example](../../examples/observe/).
+
+## More lifecycle-bound helpers
+
+`observe` is one of a family: native subscriptions that have no `signal` of their own, bridged
+to the view's mounted lifetime so they clean up on `unmount()` with no bookkeeping. Call them
+in `onMount()`.
+
+- **`onResize(target, callback, options?)`** — a `ResizeObserver`, disconnected on unmount.
+  Returns the observer.
+- **`onMedia(query, callback)`** — a `matchMedia` listener for breakpoints or
+  `prefers-color-scheme`. Returns the `MediaQueryList`, so you can read `.matches` for the
+  initial state. The listener detaches on unmount.
+- **`interval(callback, ms)`** — a `setInterval` that clears itself on unmount, so a polling
+  timer never outlives the view. Returns the timer id.
+
+```js
+onMount() {
+  // re-layout when the element resizes
+  this.onResize(this.el, ([entry]) => this.relayout(entry.contentRect));
+
+  // react to a breakpoint, seeded with the current state
+  const wide = this.onMedia('(min-width: 60rem)', (e) => this.setWide(e.matches));
+  this.setWide(wide.matches);
+
+  // poll while mounted; the timer is cleared automatically on unmount
+  this.interval(() => this.refresh(), 5000);
+}
+```
+
+Same guarantee as `listen`/`observe`: no manual `clearInterval`/`disconnect`, no leak.
 
 ## Regions (layouts)
 
@@ -701,8 +734,9 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 | `changes()` | A `{ key: { value, baseline } }` map of every changed attribute (`{}` = clean). |
 | `commit()` | Adopt the current attributes as the new clean baseline (call after a save). Returns `this`. |
 | `revert(key?)` | Discard unsaved edits back to the baseline — fires `change` events. With a `key`, reverts just that attribute. Returns `this`. |
-| `validate()` | Validate the attributes against `static rules`. Returns errors keyed by field (`{}` = valid). |
-| `isValid()` | Whether the attributes pass validation. |
+| `await validate()` | Validate the attributes against `static rules`. **Async** — resolves to errors keyed by field (`{}` = valid). |
+| `await isValid()` | Whether the attributes pass validation. **Async**. |
+| `clearStored()` | Remove this model's persisted entry (see [Persistence](#persistence)). In-memory data is untouched. Returns `this`. |
 | `toJSON()` | A shallow copy of the attributes. |
 
 ## Example: one model, observed surgically
@@ -752,7 +786,11 @@ profile.get('name'); // string
 ## Validation
 
 A model is the single source of truth for whether its data is valid. Declare `static rules`
-and call `validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
+and `await validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
+
+`validate()` and `isValid()` are **async** (they return Promises): a rule may be synchronous
+*or* hit the server (e.g. "is this email already taken?"), and both go through the **same**
+path — there is no separate async validator.
 
 ```js
 import { Model, required, email } from 'lumenjs';
@@ -760,7 +798,7 @@ import { Model, required, email } from 'lumenjs';
 class User extends Model {
   static rules = { email: [required(), email()] };
 }
-new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
+await new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
 ```
 
 ## Nested attributes — dot-paths
@@ -846,6 +884,43 @@ draft.commit();            // isDirty() === false again, no events emitted
 This is exactly what a form needs: enable the **Save** button only `while (model.isDirty())`,
 wire **Discard** to `revert()`, and `commit()` once the server confirms. Because `revert()`
 goes through `set`, every observing view reacts through the same `change` path as any edit.
+
+## Persistence
+
+Persistence is a **first-class `Model` capability**, declared like `static rules` — not a
+wrapper you bolt on. Declare `static storage` and the model **loads its state on
+construction** and **saves on every change**, with no extra wiring: the same `set`/`unset`
+that notify views also persist.
+
+```js
+class Todos extends Model {
+  static storage = 'todos';   // a key in localStorage
+}
+
+const list = new Todos({ items: [] });
+list.set('items', [...list.get('items'), 'Buy milk']);  // saved automatically
+// next page load: new Todos({ items: [] }) comes back with the saved items
+```
+
+A **string** is a `localStorage` key. For full control, use the object form:
+
+```js
+class Session extends Model {
+  static storage = {
+    key: (data) => `user:${data.id}`,  // derive a per-entity key from the data
+    area: sessionStorage,              // default is localStorage; this is tab-scoped
+    serialize: JSON.stringify,         // customise if you need to
+    deserialize: JSON.parse,
+  };
+}
+```
+
+- **Loaded state is the clean baseline.** A freshly-hydrated model reports `isDirty() === false`;
+  persisted values win over the initial defaults you pass in (defaults fill only missing keys).
+- **Safe when storage is absent.** Under SSR/headless (no Web Storage) the model works normally
+  and simply doesn't persist — it never throws. Write errors (full quota, private mode) are
+  swallowed too, so persistence can never break the app.
+- **`clearStored()`** removes the persisted entry; the in-memory attributes are untouched.
 
 ## Derived data — the model as its own presenter
 
@@ -1270,7 +1345,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 
 ## Philosophy
 
-- **Thin over `fetch`.** Sensible defaults — JSON encode/decode and "throw on non-2xx" — and nothing else. No interceptors-by-magic, no hidden retries.
+- **Thin over `fetch`.** Sensible defaults — JSON encode/decode and "throw on non-2xx" — and nothing else by default. Interceptors and retry are **opt-in and explicit**, never magic: nothing happens unless you ask for it.
 - **Cancellable, lifecycle-friendly.** Pass an `AbortSignal` (e.g. a view's `this.signal`) and the request is cancelled automatically when the view unmounts.
 - **Errors carry data.** A non-2xx response throws `HttpError` with the status, the `Response`, and the already-parsed body.
 
@@ -1278,7 +1353,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 
 | Member | Description |
 |---|---|
-| `new Http({ baseURL?, headers?, signal?, timeout? })` | Configure a client. `timeout` (ms) is the default for every request. |
+| `new Http({ baseURL?, headers?, signal?, timeout?, retry?, onRequest?, onResponse? })` | Configure a client. `timeout` (ms) and `retry` are defaults for every request. `onRequest`/`onResponse` are interceptors. |
 | `get(path, options?)` | GET. Returns the parsed body. |
 | `post(path, body?, options?)` | POST (plain objects are JSON-encoded). |
 | `put` / `patch(path, body?, options?)` | PUT / PATCH. |
@@ -1294,6 +1369,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 | `signal` | `AbortSignal` to cancel (pass `view.signal`). |
 | `query` | Object of query params appended to the URL. |
 | `timeout` | Abort after N ms. Composed with `signal` via `AbortSignal.any`; overrides the client default. |
+| `retry` | Retry transient failures. A number is shorthand for `{ retries: n }`; overrides the client default. |
 
 ### `HttpError`
 
@@ -1363,11 +1439,165 @@ try {
 }
 ```
 
+## Interceptors
+
+Two optional hooks let you touch every request without wrapping each call site. They live
+on the client, run on the primitive `request`, and stay explicit — you pass the functions, so
+there is nothing hidden.
+
+- **`onRequest(ctx)`** runs before each attempt (and again on every retry). The context is
+  `{ method, url, headers, init }`, all mutable — the canonical use is injecting auth.
+- **`onResponse(res, ctx)`** runs after each response, before status handling. Observe it, or
+  return a **replacement `Response`** to continue with that one (e.g. after refreshing a token).
+
+```js
+const api = new Http({
+  baseURL: 'https://api.example.com',
+  onRequest: (ctx) => { ctx.headers.Authorization = `Bearer ${getToken()}`; },
+  onResponse: (res) => { if (res.status === 401) signOut(); },
+});
+```
+
+Both may be `async`, so a token refresh can `await` before the request proceeds.
+
+## Retry
+
+Pass `retry` to retry transient failures with exponential backoff. A number is shorthand
+for `{ retries: n }`; the full form is `{ retries, delay = 300, factor = 2, when }`. Set a
+default on the client and override per request:
+
+```js
+const api = new Http({ baseURL: 'https://api.example.com', retry: 2 });
+
+await api.get('/flaky', { retry: { retries: 3, delay: 500 } }); // per-request override
+```
+
+- Backoff between attempts is `delay * factor ** attempt` — `300, 600, 1200…` by default.
+- The default `when` retries **network errors** and **`5xx`/`429`** responses, and never other
+  `4xx` (a `404` won't fix itself). Pass your own `when({ error?, response?, attempt })` to change that.
+- The wait is **cancellable**: if the request's `signal` aborts mid-backoff, it stops at once.
+- **Aborts and timeouts are never retried** — an `AbortSignal` is single-use, so the retry would
+  fail instantly anyway.
+
 ## Design notes
 
 - Bodies are parsed by content type: JSON when the response is JSON, text otherwise, `null` for `204`/empty.
 - A cancelled request rejects with an `AbortError` (the platform's behavior) — check `e.name === 'AbortError'` to ignore it. A timeout rejects with a `TimeoutError`.
 - No global instance: create one `Http` per API/base URL and pass it where needed.
+
+
+---
+
+<!-- docs/en/resource.md -->
+
+# Resource
+
+Observable **server state** — the stale-while-revalidate (SWR) pattern, kept small and
+transparent. It's the piece every data-loading view otherwise re-implements by hand:
+a cache, request dedupe, background revalidation, and mutations.
+
+## Philosophy
+
+- **A peer, not a wrapper.** `Resource` sits beside `Model`/`Collection` as an observable state primitive. It does **not** patch `Http`; it *consumes* a plain `fetcher` (often `(key) => http.get(key)`), so the transport stays a transport and the cache stays a cache.
+- **Stale-while-revalidate.** A `read` returns whatever is cached **instantly**, then revalidates in the background — the UI never blocks on a network round-trip it already has an answer for.
+- **Explicit sharing, no singleton.** One `Resource` instance is a cache you create and pass around — exactly like an `EventEmitter` bus or an `Http` client. Two views that share the instance share the cache and dedupe each other's requests. Nothing is global.
+- **Errors are state, not exceptions.** A failed fetch lands in the key's `error`; background revalidation never throws. For imperative "fetch and throw on error", call `Http` directly.
+
+## State
+
+Every key exposes a `ResourceState`:
+
+| Field | Meaning |
+|---|---|
+| `data` | The last successfully fetched value (`undefined` until the first success). |
+| `error` | The last fetch error (`undefined` when the latest fetch succeeded). |
+| `isLoading` | **First** load: no data yet *and* a fetch is in flight → render a skeleton. |
+| `isValidating` | **Any** fetch in flight, including a background revalidation over existing data → render a subtle spinner. |
+
+## API
+
+| Member | Description |
+|---|---|
+| `new Resource({ fetcher, dedupe? })` | `fetcher(key)` loads the data and receives the original (un-serialized) key. `dedupe` (ms, default `2000`) is the window in which a `read` of a fresh key skips refetching. |
+| `get(key)` | The current cached `ResourceState` **without** triggering a fetch. |
+| `read(key, handler?, { signal? })` | Return the cached snapshot now, trigger a background fetch if missing/stale, and (with `handler`) subscribe to later changes. The main entry in `onMount()`. |
+| `subscribe(key, handler, { signal? })` | Subscribe to a key's changes **without** triggering a fetch. Returns an unsubscribe function. |
+| `revalidate(key)` | Force a refetch (deduped). Never rejects — errors land in state. Resolves when the fetch settles. |
+| `mutate(key, data?, options?)` | Update the cache, then (by default) revalidate. See [Mutations](#mutations). Resolves to the freshest data. |
+| `clear(key?)` | Drop one key, or the whole cache with no argument. Subscribers stay subscribed and get a reset (empty) state. |
+
+Keys are strings, or anything JSON-serializable (e.g. `['users', id]`) — keep array parts in
+a stable order. In-flight requests are **always** deduped, regardless of the `dedupe` window.
+
+## Example
+
+Create one resource for the app and pass it to views. A view reads in `onMount`, binds the
+subscription to its `signal`, and renders each state it receives:
+
+```js
+import { Http } from 'lumenjs/http';
+import { Resource } from 'lumenjs/resource';
+
+const http = new Http({ baseURL: 'https://api.example.com' });
+const resource = new Resource({ fetcher: (key) => http.get(key) });
+
+class UserCard extends View {
+  static template = '#user-card';
+  onMount() {
+    const state = this.props.resource.read('/users/1', (s) => this.render(s), { signal: this.signal });
+    this.render(state); // the cached snapshot now; the handler fires on every later change
+  }
+  render({ data, error, isLoading }) {
+    if (isLoading) return this.showSkeleton();
+    if (error) return this.showError(error);
+    this.ui.name.textContent = data.name;
+  }
+}
+
+new UserCard({ resource }).mount(document.querySelector('#app'));
+```
+
+Because the subscription is bound to `this.signal`, unmounting the view detaches it
+automatically — no leak, no "update on unmounted view".
+
+## Mutations
+
+`mutate` is one method with four shapes, from simplest to richest:
+
+```js
+resource.mutate('/users/1');                       // invalidate → refetch
+resource.mutate('/users/1', { name: 'Ada' });      // write a value into the cache
+resource.mutate('/users/1', (prev) => ({ ...prev, seen: true })); // derive from current
+```
+
+The fourth shape is an **optimistic update with rollback**: pass the server write itself as a
+`Promise`, show `optimisticData` immediately, and let `Resource` reconcile — on success it
+writes the resolved result (then revalidates); on failure it restores the previous data.
+
+```js
+const patch = { name: 'Ada Lovelace' };
+await resource.mutate('/users/1', http.patch('/users/1', patch), {
+  optimisticData: { ...currentUser, ...patch },
+});
+// UI shows the new name instantly; if the PATCH rejects, it rolls back to currentUser.
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `revalidate` | `true` | Refetch from the server after the local write. |
+| `optimisticData` | — | Value to show immediately while a passed `Promise` resolves. |
+| `rollbackOnError` | `true` | Restore the previous data if the `Promise` rejects. |
+
+A rejected optimistic `mutate` re-throws after rolling back, so you can still `catch` it to
+show a toast.
+
+## Design notes
+
+- **Dedupe vs. revalidate window.** Two views mounting at once share a single in-flight request (in-flight dedupe). A `read` within `dedupe` ms of the last successful fetch skips the network entirely; past that window it serves cached data **and** revalidates.
+- **`isLoading` vs. `isValidating`.** Use `isLoading` to decide *skeleton vs. content* (first paint) and `isValidating` for a *background refresh* indicator. They overlap only on the very first fetch.
+- **`clear` keeps subscriptions.** On logout, `resource.clear()` wipes every entry and pushes an empty state to live views without unsubscribing them — the views simply re-render as "loading/empty".
+- **Pair with `Http`.** The natural `fetcher` is `(key) => http.get(key)`; retries, timeouts, and auth interceptors all live in `Http`, so `Resource` inherits them for free.
+- **No global instance.** Create one `Resource` per cache scope and pass it where needed (props, a shared module). Sharing is always explicit.
 
 
 ---
@@ -1450,8 +1680,8 @@ data is — unlike persistence, which lives elsewhere.)
 ## Philosophy
 
 - **Rules live with the model.** `static rules` on the model; the UI doesn't redefine them.
-- **`validate()` returns; nothing is magic.** It does not block `set` or auto-render — you call it when it makes sense (on submit, on blur, on input) and render the result.
-- **Composable, pure rules.** Each rule is `(value, data) => string | null`. Bring your own.
+- **`validate()` returns; nothing is magic.** It does not block `set` or auto-render — you `await` it when it makes sense (on submit, on blur, on input) and render the result.
+- **Composable rules, sync or async.** Each rule is `(value, data) => string | null | Promise<string | null>`. A server-side check (e.g. "email already taken?") is just a rule that returns a Promise — same path, no separate async validator. Bring your own.
 
 ## Defining rules on a model
 
@@ -1467,11 +1697,12 @@ class Signup extends Model {
 }
 
 const user = new Signup({ email: 'bad', password: '123', confirm: '' });
-user.validate();  // { email: ['must be a valid email'], password: ['must be at least 8 characters'], confirm: ['passwords must match'] }
-user.isValid();   // false
+await user.validate();  // { email: ['must be a valid email'], password: ['must be at least 8 characters'], confirm: ['passwords must match'] }
+await user.isValid();   // false
 ```
 
-`validate()` returns errors keyed by field — an empty object means valid. Override
+`validate()` resolves to errors keyed by field — an empty object means valid. It is **async**
+so a rule can hit the server; sync-only rules just resolve on the next microtask. Override
 `validate()` for custom cross-field logic.
 
 ## Built-in rules
@@ -1485,6 +1716,25 @@ user.isValid();   // false
 | `min(n, msg?)` / `max(n, msg?)` | number out of range |
 | `match(field, msg?)` | not equal to another field |
 | custom: `(value, data) => msg \| null` | your logic returns a message |
+| async: `(value, data) => Promise<msg \| null>` | an awaited check (e.g. a server lookup) returns a message |
+
+### An async rule
+
+A rule that returns a Promise is awaited like any other — no special registration:
+
+```js
+const emailAvailable = (msg = 'is already taken') => async (value) => {
+  if (!value) return null;                       // let `required()` own emptiness
+  const { taken } = await api.get('/check-email', { query: { value } });
+  return taken ? msg : null;
+};
+
+class Signup extends Model {
+  static rules = { email: [required(), email(), emailAvailable()] };
+}
+
+await new Signup({ email: 'ada@x.io' }).validate(); // awaits the server check
+```
 
 ## Rendering errors in a View
 
@@ -1494,14 +1744,14 @@ Set the form fields into the model, validate, and paint the errors into per-fiel
 class SignupForm extends View {
   static template = '#signup';
   onMount() { this.listen(this.ui.form, 'submit', this.submit); }
-  submit = (e) => {
+  submit = async (e) => {
     e.preventDefault();
     this.props.model.set({
       email: this.ui.email.value,
       password: this.ui.password.value,
       confirm: this.ui.confirm.value,
     });
-    const errors = this.props.model.validate();
+    const errors = await this.props.model.validate();
     this.showErrors(errors);
     if (Object.keys(errors).length === 0) this.props.onValid();
   };
@@ -1525,7 +1775,8 @@ are a UX nicety on top.
 ## Design notes
 
 - `validate.js` imports nothing (pure leaf). `Model` imports `runRules` from it — a clean one-directional dependency (no cycle).
-- Standalone use: `runRules(anyData, rules)` works without a model (e.g. validate raw form values directly).
+- `runRules` is **async** (returns a Promise): it `await`s each rule, runs them in declaration order, and a field collects every failure (it does not short-circuit on the first).
+- Standalone use: `await runRules(anyData, rules)` works without a model (e.g. validate raw form values directly).
 
 
 ---

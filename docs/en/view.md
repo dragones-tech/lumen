@@ -39,6 +39,9 @@ Wire listeners in `onMount()` (it re-runs on remount); do one-time setup in `onC
 | `removeChild(child)` | Untrack and unmount a child. |
 | `listen(target, type, handler, options?)` | `addEventListener` bound to `signal` (auto-removed on unmount). |
 | `observe(target, callback, options?)` | `IntersectionObserver` bound to `signal` (auto-disconnected on unmount). |
+| `onResize(target, callback, options?)` | `ResizeObserver` bound to `signal` (auto-disconnected on unmount). |
+| `onMedia(query, callback)` | `matchMedia` listener bound to `signal`; returns the `MediaQueryList` (read `.matches`). |
+| `interval(callback, ms)` | `setInterval` cleared on unmount (bound to `signal`); returns the timer id. |
 | `mount(parent, { animate? })` | `animate: false` skips `animateIn()` (used by `Region`'s View-Transition path). |
 | `unmount({ animate? })` | `animate: false` skips `animateOut()`; propagates through the cascade. |
 | `onCreate / onMount / onUnmount` | Lifecycle hooks (override). |
@@ -153,6 +156,36 @@ The callback receives the standard `(entries, observer)` arguments, so `threshol
 `rootMargin` and `observer.unobserve()` all work exactly as on the platform. No magic, no
 global document scanner — each view observes only what it asks to. See the
 [live example](../../examples/observe/).
+
+## More lifecycle-bound helpers
+
+`observe` is one of a family: native subscriptions that have no `signal` of their own, bridged
+to the view's mounted lifetime so they clean up on `unmount()` with no bookkeeping. Call them
+in `onMount()`.
+
+- **`onResize(target, callback, options?)`** — a `ResizeObserver`, disconnected on unmount.
+  Returns the observer.
+- **`onMedia(query, callback)`** — a `matchMedia` listener for breakpoints or
+  `prefers-color-scheme`. Returns the `MediaQueryList`, so you can read `.matches` for the
+  initial state. The listener detaches on unmount.
+- **`interval(callback, ms)`** — a `setInterval` that clears itself on unmount, so a polling
+  timer never outlives the view. Returns the timer id.
+
+```js
+onMount() {
+  // re-layout when the element resizes
+  this.onResize(this.el, ([entry]) => this.relayout(entry.contentRect));
+
+  // react to a breakpoint, seeded with the current state
+  const wide = this.onMedia('(min-width: 60rem)', (e) => this.setWide(e.matches));
+  this.setWide(wide.matches);
+
+  // poll while mounted; the timer is cleared automatically on unmount
+  this.interval(() => this.refresh(), 5000);
+}
+```
+
+Same guarantee as `listen`/`observe`: no manual `clearInterval`/`disconnect`, no leak.
 
 ## Regions (layouts)
 

@@ -5,7 +5,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 
 ## Philosophy
 
-- **Thin over `fetch`.** Sensible defaults — JSON encode/decode and "throw on non-2xx" — and nothing else. No interceptors-by-magic, no hidden retries.
+- **Thin over `fetch`.** Sensible defaults — JSON encode/decode and "throw on non-2xx" — and nothing else by default. Interceptors and retry are **opt-in and explicit**, never magic: nothing happens unless you ask for it.
 - **Cancellable, lifecycle-friendly.** Pass an `AbortSignal` (e.g. a view's `this.signal`) and the request is cancelled automatically when the view unmounts.
 - **Errors carry data.** A non-2xx response throws `HttpError` with the status, the `Response`, and the already-parsed body.
 
@@ -13,7 +13,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 
 | Member | Description |
 |---|---|
-| `new Http({ baseURL?, headers?, signal?, timeout? })` | Configure a client. `timeout` (ms) is the default for every request. |
+| `new Http({ baseURL?, headers?, signal?, timeout?, retry?, onRequest?, onResponse? })` | Configure a client. `timeout` (ms) and `retry` are defaults for every request. `onRequest`/`onResponse` are interceptors. |
 | `get(path, options?)` | GET. Returns the parsed body. |
 | `post(path, body?, options?)` | POST (plain objects are JSON-encoded). |
 | `put` / `patch(path, body?, options?)` | PUT / PATCH. |
@@ -29,6 +29,7 @@ A small, transparent `fetch` wrapper (phase 2). It replaces the old framework's
 | `signal` | `AbortSignal` to cancel (pass `view.signal`). |
 | `query` | Object of query params appended to the URL. |
 | `timeout` | Abort after N ms. Composed with `signal` via `AbortSignal.any`; overrides the client default. |
+| `retry` | Retry transient failures. A number is shorthand for `{ retries: n }`; overrides the client default. |
 
 ### `HttpError`
 
@@ -97,6 +98,46 @@ try {
   else if (e.name !== 'AbortError') this.showError(e);  // real error (ignore unmount aborts)
 }
 ```
+
+## Interceptors
+
+Two optional hooks let you touch every request without wrapping each call site. They live
+on the client, run on the primitive `request`, and stay explicit — you pass the functions, so
+there is nothing hidden.
+
+- **`onRequest(ctx)`** runs before each attempt (and again on every retry). The context is
+  `{ method, url, headers, init }`, all mutable — the canonical use is injecting auth.
+- **`onResponse(res, ctx)`** runs after each response, before status handling. Observe it, or
+  return a **replacement `Response`** to continue with that one (e.g. after refreshing a token).
+
+```js
+const api = new Http({
+  baseURL: 'https://api.example.com',
+  onRequest: (ctx) => { ctx.headers.Authorization = `Bearer ${getToken()}`; },
+  onResponse: (res) => { if (res.status === 401) signOut(); },
+});
+```
+
+Both may be `async`, so a token refresh can `await` before the request proceeds.
+
+## Retry
+
+Pass `retry` to retry transient failures with exponential backoff. A number is shorthand
+for `{ retries: n }`; the full form is `{ retries, delay = 300, factor = 2, when }`. Set a
+default on the client and override per request:
+
+```js
+const api = new Http({ baseURL: 'https://api.example.com', retry: 2 });
+
+await api.get('/flaky', { retry: { retries: 3, delay: 500 } }); // per-request override
+```
+
+- Backoff between attempts is `delay * factor ** attempt` — `300, 600, 1200…` by default.
+- The default `when` retries **network errors** and **`5xx`/`429`** responses, and never other
+  `4xx` (a `404` won't fix itself). Pass your own `when({ error?, response?, attempt })` to change that.
+- The wait is **cancellable**: if the request's `signal` aborts mid-backoff, it stops at once.
+- **Aborts and timeouts are never retried** — an `AbortSignal` is single-use, so the retry would
+  fail instantly anyway.
 
 ## Design notes
 

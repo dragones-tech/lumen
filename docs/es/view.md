@@ -39,6 +39,9 @@ Cablea listeners en `onMount()` (se re-cablean al re-montar); haz la configuraci
 | `removeChild(child)` | Desregistra y desmonta un hijo. |
 | `listen(target, type, handler, options?)` | `addEventListener` atado a `signal` (se quita solo al desmontar). |
 | `observe(target, callback, options?)` | `IntersectionObserver` atado a `signal` (se desconecta solo al desmontar). |
+| `onResize(target, callback, options?)` | `ResizeObserver` atado a `signal` (se desconecta solo al desmontar). |
+| `onMedia(query, callback)` | Listener de `matchMedia` atado a `signal`; devuelve el `MediaQueryList` (lee `.matches`). |
+| `interval(callback, ms)` | `setInterval` que se limpia al desmontar (atado a `signal`); devuelve el id del timer. |
 | `mount(parent, { animate? })` | `animate: false` salta `animateIn()` (lo usa la vía de View-Transition de `Region`). |
 | `unmount({ animate? })` | `animate: false` salta `animateOut()`; se propaga por la cascada. |
 | `onCreate / onMount / onUnmount` | Hooks de ciclo de vida (sobreescribibles). |
@@ -153,6 +156,36 @@ El callback recibe los argumentos estándar `(entries, observer)`, así que `thr
 `rootMargin` y `observer.unobserve()` funcionan exactamente como en la plataforma. Sin magia,
 sin escáner global del documento — cada vista observa solo lo que pide. Ver el
 [ejemplo en vivo](../../examples/observe/).
+
+## Más helpers atados al ciclo de vida
+
+`observe` es uno de una familia: suscripciones nativas que no tienen `signal` propio, puenteadas
+al tiempo de vida montado de la vista para que se limpien al `unmount()` sin contabilidad
+manual. Llámalos en `onMount()`.
+
+- **`onResize(target, callback, options?)`** — un `ResizeObserver`, desconectado al desmontar.
+  Devuelve el observer.
+- **`onMedia(query, callback)`** — un listener de `matchMedia` para breakpoints o
+  `prefers-color-scheme`. Devuelve el `MediaQueryList`, así puedes leer `.matches` para el
+  estado inicial. El listener se desengancha al desmontar.
+- **`interval(callback, ms)`** — un `setInterval` que se limpia solo al desmontar, así un timer
+  de polling nunca sobrevive a la vista. Devuelve el id del timer.
+
+```js
+onMount() {
+  // re-maquetar cuando el elemento cambia de tamaño
+  this.onResize(this.el, ([entry]) => this.relayout(entry.contentRect));
+
+  // reaccionar a un breakpoint, sembrado con el estado actual
+  const wide = this.onMedia('(min-width: 60rem)', (e) => this.setWide(e.matches));
+  this.setWide(wide.matches);
+
+  // poll mientras esté montada; el timer se limpia solo al desmontar
+  this.interval(() => this.refresh(), 5000);
+}
+```
+
+Misma garantía que `listen`/`observe`: sin `clearInterval`/`disconnect` manual, sin fugas.
 
 ## Regiones (layouts)
 

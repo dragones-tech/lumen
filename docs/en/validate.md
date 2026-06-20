@@ -7,8 +7,8 @@ data is — unlike persistence, which lives elsewhere.)
 ## Philosophy
 
 - **Rules live with the model.** `static rules` on the model; the UI doesn't redefine them.
-- **`validate()` returns; nothing is magic.** It does not block `set` or auto-render — you call it when it makes sense (on submit, on blur, on input) and render the result.
-- **Composable, pure rules.** Each rule is `(value, data) => string | null`. Bring your own.
+- **`validate()` returns; nothing is magic.** It does not block `set` or auto-render — you `await` it when it makes sense (on submit, on blur, on input) and render the result.
+- **Composable rules, sync or async.** Each rule is `(value, data) => string | null | Promise<string | null>`. A server-side check (e.g. "email already taken?") is just a rule that returns a Promise — same path, no separate async validator. Bring your own.
 
 ## Defining rules on a model
 
@@ -24,11 +24,12 @@ class Signup extends Model {
 }
 
 const user = new Signup({ email: 'bad', password: '123', confirm: '' });
-user.validate();  // { email: ['must be a valid email'], password: ['must be at least 8 characters'], confirm: ['passwords must match'] }
-user.isValid();   // false
+await user.validate();  // { email: ['must be a valid email'], password: ['must be at least 8 characters'], confirm: ['passwords must match'] }
+await user.isValid();   // false
 ```
 
-`validate()` returns errors keyed by field — an empty object means valid. Override
+`validate()` resolves to errors keyed by field — an empty object means valid. It is **async**
+so a rule can hit the server; sync-only rules just resolve on the next microtask. Override
 `validate()` for custom cross-field logic.
 
 ## Built-in rules
@@ -42,6 +43,25 @@ user.isValid();   // false
 | `min(n, msg?)` / `max(n, msg?)` | number out of range |
 | `match(field, msg?)` | not equal to another field |
 | custom: `(value, data) => msg \| null` | your logic returns a message |
+| async: `(value, data) => Promise<msg \| null>` | an awaited check (e.g. a server lookup) returns a message |
+
+### An async rule
+
+A rule that returns a Promise is awaited like any other — no special registration:
+
+```js
+const emailAvailable = (msg = 'is already taken') => async (value) => {
+  if (!value) return null;                       // let `required()` own emptiness
+  const { taken } = await api.get('/check-email', { query: { value } });
+  return taken ? msg : null;
+};
+
+class Signup extends Model {
+  static rules = { email: [required(), email(), emailAvailable()] };
+}
+
+await new Signup({ email: 'ada@x.io' }).validate(); // awaits the server check
+```
 
 ## Rendering errors in a View
 
@@ -51,14 +71,14 @@ Set the form fields into the model, validate, and paint the errors into per-fiel
 class SignupForm extends View {
   static template = '#signup';
   onMount() { this.listen(this.ui.form, 'submit', this.submit); }
-  submit = (e) => {
+  submit = async (e) => {
     e.preventDefault();
     this.props.model.set({
       email: this.ui.email.value,
       password: this.ui.password.value,
       confirm: this.ui.confirm.value,
     });
-    const errors = this.props.model.validate();
+    const errors = await this.props.model.validate();
     this.showErrors(errors);
     if (Object.keys(errors).length === 0) this.props.onValid();
   };
@@ -82,4 +102,5 @@ are a UX nicety on top.
 ## Design notes
 
 - `validate.js` imports nothing (pure leaf). `Model` imports `runRules` from it — a clean one-directional dependency (no cycle).
-- Standalone use: `runRules(anyData, rules)` works without a model (e.g. validate raw form values directly).
+- `runRules` is **async** (returns a Promise): it `await`s each rule, runs them in declaration order, and a field collects every failure (it does not short-circuit on the first).
+- Standalone use: `await runRules(anyData, rules)` works without a model (e.g. validate raw form values directly).

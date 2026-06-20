@@ -34,8 +34,9 @@ Observable data for a single entity (a user, a todo, a setting). It pairs with
 | `changes()` | A `{ key: { value, baseline } }` map of every changed attribute (`{}` = clean). |
 | `commit()` | Adopt the current attributes as the new clean baseline (call after a save). Returns `this`. |
 | `revert(key?)` | Discard unsaved edits back to the baseline — fires `change` events. With a `key`, reverts just that attribute. Returns `this`. |
-| `validate()` | Validate the attributes against `static rules`. Returns errors keyed by field (`{}` = valid). |
-| `isValid()` | Whether the attributes pass validation. |
+| `await validate()` | Validate the attributes against `static rules`. **Async** — resolves to errors keyed by field (`{}` = valid). |
+| `await isValid()` | Whether the attributes pass validation. **Async**. |
+| `clearStored()` | Remove this model's persisted entry (see [Persistence](#persistence)). In-memory data is untouched. Returns `this`. |
 | `toJSON()` | A shallow copy of the attributes. |
 
 ## Example: one model, observed surgically
@@ -85,7 +86,11 @@ profile.get('name'); // string
 ## Validation
 
 A model is the single source of truth for whether its data is valid. Declare `static rules`
-and call `validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
+and `await validate()`; the UI renders the returned errors. See the [validation guide](validate.md).
+
+`validate()` and `isValid()` are **async** (they return Promises): a rule may be synchronous
+*or* hit the server (e.g. "is this email already taken?"), and both go through the **same**
+path — there is no separate async validator.
 
 ```js
 import { Model, required, email } from 'lumenjs';
@@ -93,7 +98,7 @@ import { Model, required, email } from 'lumenjs';
 class User extends Model {
   static rules = { email: [required(), email()] };
 }
-new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
+await new User({ email: 'bad' }).validate(); // { email: ['must be a valid email'] }
 ```
 
 ## Nested attributes — dot-paths
@@ -179,6 +184,43 @@ draft.commit();            // isDirty() === false again, no events emitted
 This is exactly what a form needs: enable the **Save** button only `while (model.isDirty())`,
 wire **Discard** to `revert()`, and `commit()` once the server confirms. Because `revert()`
 goes through `set`, every observing view reacts through the same `change` path as any edit.
+
+## Persistence
+
+Persistence is a **first-class `Model` capability**, declared like `static rules` — not a
+wrapper you bolt on. Declare `static storage` and the model **loads its state on
+construction** and **saves on every change**, with no extra wiring: the same `set`/`unset`
+that notify views also persist.
+
+```js
+class Todos extends Model {
+  static storage = 'todos';   // a key in localStorage
+}
+
+const list = new Todos({ items: [] });
+list.set('items', [...list.get('items'), 'Buy milk']);  // saved automatically
+// next page load: new Todos({ items: [] }) comes back with the saved items
+```
+
+A **string** is a `localStorage` key. For full control, use the object form:
+
+```js
+class Session extends Model {
+  static storage = {
+    key: (data) => `user:${data.id}`,  // derive a per-entity key from the data
+    area: sessionStorage,              // default is localStorage; this is tab-scoped
+    serialize: JSON.stringify,         // customise if you need to
+    deserialize: JSON.parse,
+  };
+}
+```
+
+- **Loaded state is the clean baseline.** A freshly-hydrated model reports `isDirty() === false`;
+  persisted values win over the initial defaults you pass in (defaults fill only missing keys).
+- **Safe when storage is absent.** Under SSR/headless (no Web Storage) the model works normally
+  and simply doesn't persist — it never throws. Write errors (full quota, private mode) are
+  swallowed too, so persistence can never break the app.
+- **`clearStored()`** removes the persisted entry; the in-memory attributes are untouched.
 
 ## Derived data — the model as its own presenter
 

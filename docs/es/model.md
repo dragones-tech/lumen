@@ -34,8 +34,9 @@ Datos observables de una sola entidad (un usuario, un todo, un ajuste). Se empar
 | `changes()` | Un mapa `{ clave: { value, baseline } }` de cada atributo cambiado (`{}` = limpio). |
 | `commit()` | Adopta los atributos actuales como la nueva línea base limpia (llámalo tras guardar). Devuelve `this`. |
 | `revert(key?)` | Descarta ediciones sin guardar volviendo a la línea base — dispara eventos `change`. Con `key`, revierte solo ese atributo. Devuelve `this`. |
-| `validate()` | Valida los atributos contra `static rules`. Devuelve errores por campo (`{}` = válido). |
-| `isValid()` | Si los atributos pasan la validación. |
+| `await validate()` | Valida los atributos contra `static rules`. **Async** — resuelve a errores por campo (`{}` = válido). |
+| `await isValid()` | Si los atributos pasan la validación. **Async**. |
+| `clearStored()` | Elimina la entrada persistida de este modelo (ver [Persistencia](#persistencia)). Los datos en memoria quedan intactos. Devuelve `this`. |
 | `toJSON()` | Una copia superficial de los atributos. |
 
 ## Ejemplo: un modelo, observado quirúrgicamente
@@ -85,7 +86,11 @@ profile.get('name'); // string
 ## Validación
 
 Un modelo es la única fuente de verdad de si sus datos son válidos. Declara `static rules`
-y llama a `validate()`; la UI pinta los errores devueltos. Ver la [guía de validación](validate.md).
+y haz `await validate()`; la UI pinta los errores devueltos. Ver la [guía de validación](validate.md).
+
+`validate()` e `isValid()` son **async** (devuelven Promesas): una regla puede ser síncrona
+*o* consultar al servidor (p. ej. "¿este email ya está en uso?"), y ambas van por el **mismo**
+camino — no hay un validador async aparte.
 
 ```js
 import { Model, required, email } from 'lumenjs';
@@ -93,7 +98,7 @@ import { Model, required, email } from 'lumenjs';
 class User extends Model {
   static rules = { email: [required(), email()] };
 }
-new User({ email: 'mal' }).validate(); // { email: ['must be a valid email'] }
+await new User({ email: 'mal' }).validate(); // { email: ['must be a valid email'] }
 ```
 
 ## Atributos anidados — dot-paths
@@ -184,6 +189,44 @@ Esto es justo lo que un formulario necesita: habilita el botón **Guardar** solo
 `while (model.isDirty())`, conecta **Descartar** a `revert()`, y `commit()` cuando el servidor
 confirme. Como `revert()` pasa por `set`, cada vista observadora reacciona por la misma ruta
 `change` que cualquier edición.
+
+## Persistencia
+
+La persistencia es una **capacidad de primera clase de `Model`**, declarada como `static
+rules` — no un wrapper que le añades encima. Declara `static storage` y el modelo **carga su
+estado al construirse** y **guarda en cada cambio**, sin cableado extra: el mismo `set`/`unset`
+que notifica a las vistas también persiste.
+
+```js
+class Todos extends Model {
+  static storage = 'todos';   // una clave en localStorage
+}
+
+const list = new Todos({ items: [] });
+list.set('items', [...list.get('items'), 'Comprar leche']);  // guardado automáticamente
+// en la siguiente carga: new Todos({ items: [] }) vuelve con los items guardados
+```
+
+Un **string** es una clave de `localStorage`. Para control total, usa la forma objeto:
+
+```js
+class Session extends Model {
+  static storage = {
+    key: (data) => `user:${data.id}`,  // deriva una clave por-entidad desde los datos
+    area: sessionStorage,              // por defecto es localStorage; esto es por-pestaña
+    serialize: JSON.stringify,         // personaliza si lo necesitas
+    deserialize: JSON.parse,
+  };
+}
+```
+
+- **El estado cargado es la línea base limpia.** Un modelo recién hidratado reporta
+  `isDirty() === false`; los valores persistidos ganan sobre los defaults iniciales que pasas
+  (los defaults solo rellenan claves faltantes).
+- **Seguro cuando no hay storage.** Bajo SSR/headless (sin Web Storage) el modelo funciona
+  normal y simplemente no persiste — nunca lanza. Los errores de escritura (cuota llena, modo
+  privado) también se ignoran, así la persistencia nunca rompe la app.
+- **`clearStored()`** elimina la entrada persistida; los atributos en memoria quedan intactos.
 
 ## Datos derivados — el modelo como su propio presenter
 
