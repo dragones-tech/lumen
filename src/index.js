@@ -18,6 +18,7 @@ export { CollectionView } from './collection-view.js';
 export { Region } from './region.js';
 export { Router } from './router.js';
 export { Http, HttpError } from './http.js';
+export { Resource } from './resource.js';
 export { I18n } from './i18n.js';
 export { defineElement } from './element.js';
 export { runRules, required, minLength, maxLength, pattern, email, min, max, match } from './validate.js';
