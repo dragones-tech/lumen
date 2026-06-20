@@ -270,4 +270,52 @@ export class View {
     this.signal.addEventListener('abort', () => io.disconnect(), { once: true });
     return io;
   }
+
+  /**
+   * Observe an element's size with a `ResizeObserver`, automatically disconnected on
+   * `unmount()`. The `observe` sibling for size instead of visibility — same `signal`
+   * bridge, same no-leak guarantee. Call inside `onMount()`.
+   *
+   * @param {Element} target - The element to watch (often `this.el`).
+   * @param {ResizeObserverCallback} callback - Runs when `target`'s size changes.
+   * @param {ResizeObserverOptions} [options] - e.g. `{ box: 'border-box' }`.
+   * @returns {ResizeObserver} The observer, already observing `target`.
+   */
+  onResize(target, callback, options) {
+    const ro = new ResizeObserver(callback);
+    ro.observe(target, options);
+    this.signal.addEventListener('abort', () => ro.disconnect(), { once: true });
+    return ro;
+  }
+
+  /**
+   * React to a media query (responsive breakpoints, `prefers-color-scheme`, …) for the
+   * view's mounted lifetime. The listener is bound to `signal`, so it detaches on
+   * `unmount()`. Returns the `MediaQueryList`, so you can read `.matches` for the initial
+   * state. Call inside `onMount()`.
+   *
+   * @param {string | MediaQueryList} query - A media-query string (or an existing list).
+   * @param {(event: MediaQueryListEvent) => void} callback - Runs when the match state flips.
+   * @returns {MediaQueryList} The list, so the caller can read `.matches` immediately.
+   */
+  onMedia(query, callback) {
+    const mql = typeof query === 'string' ? matchMedia(query) : query;
+    mql.addEventListener('change', callback, { signal: this.signal });
+    return mql;
+  }
+
+  /**
+   * Run `callback` every `ms` for the view's mounted lifetime — a `setInterval` that clears
+   * itself on `unmount()` (it is bound to `signal`), so a polling timer never outlives the
+   * view. Call inside `onMount()`.
+   *
+   * @param {() => void} callback - Runs on each tick.
+   * @param {number} ms - Interval in milliseconds.
+   * @returns {ReturnType<typeof setInterval>} The timer id, if you want to clear it early.
+   */
+  interval(callback, ms) {
+    const id = setInterval(callback, ms);
+    this.signal.addEventListener('abort', () => clearInterval(id), { once: true });
+    return id;
+  }
 }
