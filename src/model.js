@@ -30,6 +30,24 @@ export class Model {
   static rules = null;
 
   /**
+   * Persistence backing — declare it and the model loads its state on construction and
+   * **saves on every change**, with no extra wiring. This is a first-class `Model`
+   * capability, not a wrapper: the same `set`/`unset` that notify views also persist.
+   *
+   * - A **string** is a key in `localStorage`: `static storage = 'todos'`.
+   * - An **object** gives full control: `key` (a string, or a `(data) => string` to derive a
+   *   per-entity key like `` `user:${data.id}` ``), `area` (`localStorage` by default, pass
+   *   `sessionStorage` for tab-scoped state), and custom `serialize`/`deserialize`.
+   *
+   * Loaded state becomes the clean baseline (so a freshly-hydrated model is not "dirty").
+   * If no storage is available (SSR/headless) the model works normally and simply does not
+   * persist — never throws.
+   *
+   * @type {string | { key: string | ((data: any) => string), area?: Storage, serialize?: (data: any) => string, deserialize?: (raw: string) => any } | null}
+   */
+  static storage = null;
+
+  /**
    * @param {Data} data - Initial attributes. Copied, not referenced.
    */
   constructor(data) {
@@ -43,6 +61,12 @@ export class Model {
     this._baseline = { ...data };
     /** @private */
     this._events = new EventEmitter();
+    /**
+     * Resolved storage handle, or `null` when no persistence is configured/available.
+     * @private @type {{ area: Storage, key: string, serialize: (data: any) => string } | null}
+     */
+    this._storage = null;
+    this._initStorage();
   }
 
   /**
@@ -260,22 +284,85 @@ export class Model {
   }
 
   /**
-   * Validate the current attributes against `static rules`. Returns errors keyed by field
-   * — an empty object means valid. Override for custom logic. This is the single source of
-   * truth: the model decides validity, the UI renders the result.
-   * @returns {Record<string, string[]>}
+   * Validate the current attributes against `static rules`. Resolves to errors keyed by
+   * field — an empty object means valid. Override for custom logic. This is the single
+   * source of truth: the model decides validity, the UI renders the result.
+   *
+   * `async` because a rule may hit the server (e.g. "is this email taken?"); synchronous
+   * rules resolve immediately on the next microtask. `await model.validate()`.
+   * @returns {Promise<Record<string, string[]>>}
    */
   validate() {
     const rules = /** @type {typeof Model} */ (this.constructor).rules;
-    return rules ? runRules(this.data, rules) : {};
+    return rules ? runRules(this.data, rules) : Promise.resolve({});
   }
 
   /**
    * Whether the current attributes pass validation.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  isValid() {
-    return Object.keys(this.validate()).length === 0;
+  async isValid() {
+    return Object.keys(await this.validate()).length === 0;
+  }
+
+  /**
+   * Resolve `static storage` into a concrete handle, hydrate from it, and subscribe to
+   * persist on every change. Silent no-op when storage is unconfigured or unavailable.
+   * @private
+   * @returns {void}
+   */
+  _initStorage() {
+    const config = /** @type {typeof Model} */ (this.constructor).storage;
+    if (!config) return;
+    const opts = typeof config === 'string' ? { key: config } : config;
+    const area = opts.area ?? (typeof localStorage !== 'undefined' ? localStorage : null);
+    if (!area) return; // no Web Storage here (SSR/headless) — run without persisting
+
+    const key = typeof opts.key === 'function' ? opts.key(this.data) : opts.key;
+    const serialize = opts.serialize ?? JSON.stringify;
+    const deserialize = opts.deserialize ?? JSON.parse;
+    this._storage = { area, key, serialize };
+
+    const raw = area.getItem(key);
+    if (raw != null) {
+      let stored;
+      try {
+        stored = deserialize(raw);
+      } catch {
+        stored = null; // corrupt entry — ignore, keep the initial data
+      }
+      if (stored && typeof stored === 'object') {
+        // Persisted state wins over initial defaults, and is the clean baseline.
+        this.data = { ...this.data, ...stored };
+        this._baseline = { ...this.data };
+      }
+    }
+
+    this._events.on('change', () => this._save());
+  }
+
+  /**
+   * Write the current attributes to the configured storage. Swallows write errors (e.g. a
+   * full quota or a private-mode block) so persistence never breaks the app.
+   * @private
+   * @returns {void}
+   */
+  _save() {
+    if (!this._storage) return;
+    try {
+      this._storage.area.setItem(this._storage.key, this._storage.serialize(this.toJSON()));
+    } catch {
+      /* quota exceeded or storage blocked — drop silently */
+    }
+  }
+
+  /**
+   * Remove this model's persisted entry (if any). The in-memory attributes are untouched.
+   * @returns {this}
+   */
+  clearStored() {
+    if (this._storage) this._storage.area.removeItem(this._storage.key);
+    return this;
   }
 
   /**

@@ -2,8 +2,10 @@
 
 /**
  * A validation rule: given a field value (and the whole data object), return an error
- * message string, or `null` when valid.
- * @typedef {(value: any, data: Record<string, any>) => (string | null)} Rule
+ * message string, or `null` when valid. A rule may answer **synchronously** or return a
+ * `Promise` (e.g. "is this email already taken?" hitting the server) — both go through the
+ * same path; there is no separate async validator.
+ * @typedef {(value: any, data: Record<string, any>) => (string | null | Promise<string | null>)} Rule
  */
 
 /** @param {string} [message] @returns {Rule} */
@@ -53,18 +55,24 @@ export function match(field, message) {
  * Run a rules map against a data object. Returns errors keyed by field — only fields that
  * failed are present, so an empty object means "valid".
  *
+ * Always `async`: a rule may be synchronous or return a `Promise`, and `runRules` `await`s
+ * each one, so there is a **single** path for both. Rules run in declaration order and a
+ * field collects every failure (it does not short-circuit on the first), so `await`-ing a
+ * synchronous-only rules map simply resolves on the next microtask — no behaviour change
+ * beyond the `await`.
+ *
  * @param {Record<string, any>} data
  * @param {Record<string, Rule[]>} rules
- * @returns {Record<string, string[]>}
+ * @returns {Promise<Record<string, string[]>>}
  */
-export function runRules(data, rules) {
+export async function runRules(data, rules) {
   /** @type {Record<string, string[]>} */
   const errors = {};
   for (const [field, fieldRules] of Object.entries(rules)) {
     /** @type {string[]} */
     const messages = [];
     for (const rule of fieldRules) {
-      const message = rule(data[field], data);
+      const message = await rule(data[field], data);
       if (message) messages.push(message);
     }
     if (messages.length) errors[field] = messages;

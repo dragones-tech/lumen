@@ -95,14 +95,14 @@
     class SignupForm extends View {
       static template = '#signup';
       onMount() { this.listen(this.ui.form, 'submit', this.submit); }
-      submit = (e) => {
+      submit = async (e) => {
         e.preventDefault();
         this.props.model.set({
           email: this.ui.email.value,
           password: this.ui.password.value,
           confirm: this.ui.confirm.value,
         });
-        const errors = this.props.model.validate();
+        const errors = await this.props.model.validate();
         this.showErrors(errors);
         this.ui.ok.textContent = Object.keys(errors).length === 0 ? '✓ valid!' : '';
       };
