@@ -20,5 +20,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      - run: npm install # dev deps (typescript) for the type-check below
+      - run: npm run check # fail the publish if JSDoc types don't check out
       - run: npm install -g npm@latest # ensure a version with OIDC trusted publishing
       - run: npm publish --provenance --access public
