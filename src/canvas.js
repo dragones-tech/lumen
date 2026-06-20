@@ -404,21 +404,39 @@ export class CanvasLayer extends Node2D {
     this.children = [];
     /** @private @type {Map<any, Node2D>} */
     this._byModel = new Map();
+    /** Unsubscribe fns for the collection listeners, dropped on detach. @private @type {Array<() => void>} */
+    this._offs = [];
   }
 
   onAdd() {
     const { signal } = this.stage ?? {};
     this.collection.forEach((m, i) => this._mount(m, i));
-    this.collection.on('add', ({ model, index }) => { this._mount(model, index); this._invalidate(); }, { signal });
-    this.collection.on('remove', ({ model }) => { this._unmount(model); this._invalidate(); }, { signal });
-    this.collection.on('reset', () => { this._reset(); this._invalidate(); }, { signal });
-    this.collection.on('change', () => this._invalidate(), { signal });
+    // Keep the unsubscribers: these are bound to the stage's signal, but the layer can be
+    // removed from a still-alive stage — so we also drop them in onRemove to avoid a leak.
+    this._offs = [
+      this.collection.on('add', ({ model, index }) => { this._mount(model, index); this._invalidate(); }, { signal }),
+      this.collection.on('remove', ({ model }) => { this._unmount(model); this._invalidate(); }, { signal }),
+      this.collection.on('reset', () => { this._reset(); this._invalidate(); }, { signal }),
+      this.collection.on('change', () => this._invalidate(), { signal }),
+    ];
   }
 
   onRemove() {
+    for (const off of this._offs) off();
+    this._offs = [];
     for (const node of this.children) node._detach();
     this.children = [];
     this._byModel.clear();
+  }
+
+  /**
+   * Advance children's time-based motion. The stage ticks only root nodes, so a layer must
+   * forward `update` to its children (it already forwards `draw`).
+   * @param {number} dt - Seconds since the last frame.
+   * @returns {void}
+   */
+  update(dt) {
+    for (const child of this.children) child.update(dt);
   }
 
   /** @private @param {any} model @param {number} index */
