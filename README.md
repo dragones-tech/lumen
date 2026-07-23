@@ -34,6 +34,7 @@ npm i @jehosogo/lumenjs                    # published on npm
 
 - **No build.** Native ES modules. The only thing you need is a static file server (ES module imports are blocked on `file://`). Your `.js` reaches the browser untouched.
 - **No magic.** No global side effects on import, no hidden proxies, no compiler rewriting your code. Explicit OOP with a lifecycle you can read.
+- **You control when & what updates.** Nothing re-renders on its own: `model.set(...)` emits an event, and a view *you* subscribed makes the surgical change. Every on-screen change has a cause you wrote — not a hidden dependency graph.
 - **No Web Components.** Plain classes (not `extends HTMLElement`), so you keep full control of `animate`/`unmount`. A Custom Element adapter is an opt-in escape hatch.
 - **Separate HTML.** Markup lives in native `<template>` elements — real HTML, full editor autocomplete.
 - **Style-agnostic.** Ships zero CSS. Bring plain CSS, native `@scope`, Tailwind — whatever you like.

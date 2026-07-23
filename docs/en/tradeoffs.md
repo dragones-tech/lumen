@@ -15,6 +15,19 @@ One framing to keep in mind: the axis that limits Lumen is **not app size**. It 
 interactive islands fits beautifully; a medium but highly dynamic editor-style SPA will
 fight you.
 
+## Nothing updates by magic
+
+This is the point, not a footnote. In a reactive framework the update is a *side effect* of
+reading or writing state — a hidden dependency graph (or a compiler, or proxies) decides
+**when** and **what** re-renders. Lumen inverts it: **the data announces, you decide.**
+`model.set('done', true)` re-renders nothing on its own; it emits an event, and a view *you*
+subscribed makes the surgical change *you* wrote. Every pixel that changes has a visible cause
+in your code — no proxy, no diff, no conjuring.
+
+So the manual subscription isn't ceremony you pay to avoid magic — it's the seam where control
+lives. That is why **Surgical updates** (below) is a strength and **you are the reconciler**
+(further below) is its honest cost: two sides of the same bet.
+
 ## Strengths
 
 | Strength | Why it matters |

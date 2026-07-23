@@ -16,6 +16,19 @@ Una idea para tener presente: el eje que limita a Lumen **no es el tamaño de la
 grande renderizada en el servidor con islas de interactividad le queda perfecta; una SPA
 mediana pero muy dinámica tipo editor le va a pelear.
 
+## Nada se actualiza por arte de magia
+
+Este es el punto, no una nota al pie. En un framework reactivo el update es un *efecto
+secundario* de leer o escribir estado — un grafo de dependencias oculto (o un compilador, o
+proxies) decide **cuándo** y **qué** se re-renderiza. Lumen lo invierte: **el dato avisa, tú
+decides.** `model.set('done', true)` no re-renderiza nada por sí solo; emite un evento, y una
+vista que *tú* suscribiste hace el cambio quirúrgico que *tú* escribiste. Cada píxel que cambia
+tiene una causa visible en tu código — sin proxy, sin diff, sin conjuro.
+
+Así que la suscripción manual no es ceremonia que pagas por evitar la magia — es la costura
+donde vive el control. Por eso **Updates quirúrgicos** (abajo) es una fortaleza y **tú eres el
+reconciliador** (más abajo) es su costo honesto: dos caras de la misma apuesta.
+
 ## Fortalezas
 
 | Fortaleza | Por qué importa |
