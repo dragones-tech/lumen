@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-mode="dark" data-theme="miasma">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · Math — waves, circles &amp; geometry</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
+  <style>
+    body { max-width: 46rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    p.muted { color: var(--text-muted); }
+    canvas { border: var(--border-width) solid var(--border); border-radius: var(--radius); background: var(--surface); display: block; }
+  </style>
+</head>
+<body>
+  <h1>Math · waves, circles &amp; geometry</h1>
+  <p class="muted">
+    Pure functions from <code>src/math.js</code> generate the points; the canvas
+    <code>Path</code>/<code>Polygon</code>/<code>Arc</code> primitives draw them. One clock
+    (<code>t</code>, in seconds) drives every motion through <code>wave()</code> — no per-node
+    state, just trigonometry recomputed each frame.
+  </p>
+
+  <canvas id="scene" width="560" height="320"></canvas>
+
+  <script type="module">
+    import {
+      TAU, wave, plotPoints, polygonPoints, circlePoints, vec, rng,
+    } from '../../src/index.js';
+    import { Stage, Path, Polygon, Arc, Circle } from '../../src/canvas.js';
+
+    const W = 560, H = 320;
+    const ink = '#38e0c8', ink2 = '#f59e0b', axis = 'color-mix(in oklab, transparent, #38e0c8 30%)';
+
+    const canvas = document.querySelector('#scene');
+    const stage = new Stage(canvas);
+
+    // ── A seeded starfield (behind everything) ──────────────────────────────
+    // rng(seed) is reproducible: this exact scatter comes back on every reload.
+    const r = rng(20260722);
+    for (let i = 0; i < 90; i++) {
+      const [x, y] = r.inRect(6, 6, W - 6, H - 6);
+      stage.add(new Circle({ x, y, r: r.random(0.5, 1.8), fill: axis }));
+    }
+
+    // ── A sine wave: y = f(x), resampled every frame ────────────────────────
+    // Baseline for the wave (a flat Path across the canvas).
+    stage.add(new Path({ points: [[20, 120], [W - 20, 120]], stroke: axis, lineWidth: 1 }));
+    const waveLine = stage.add(new Path({ stroke: ink, lineWidth: 2, lineJoin: 'round', lineCap: 'round' }));
+
+    // ── A rotating hexagon (regular polygon from math) ──────────────────────
+    const hexPts = polygonPoints(0, 0, 42, 6, -TAU / 4);   // a vertex pointing up
+    const hex = stage.add(new Polygon({ x: 120, y: 240, points: hexPts, stroke: ink, lineWidth: 2 }));
+
+    // ── A pulsing ring + sweeping arc (Arc) ─────────────────────────────────
+    stage.add(new Path({ x: 300, y: 240, points: circlePoints(0, 0, 44, 64), closed: true, stroke: axis, lineWidth: 1 }));
+    const sweep = stage.add(new Arc({ x: 300, y: 240, r: 44, stroke: ink2, lineWidth: 3, lineCap: 'round' }));
+
+    // ── An orbiting dot (vec.fromAngle) ─────────────────────────────────────
+    const dot = stage.add(new Circle({ r: 5, fill: ink2 }));
+    const orbit = [460, 240];
+
+    // ── One clock drives it all ─────────────────────────────────────────────
+    let t = 0;
+    stage.animate((dt) => {
+      t += dt;
+
+      // wave: amplitude breathes, phase scrolls
+      const amp = wave(t, { freq: 0.2, amp: 22, offset: 40 });
+      waveLine.points = plotPoints(
+        (x) => 120 + wave(x, { freq: 1 / 140, amp, phase: -t * 2.2 }),
+        20, W - 20, 4,
+      );
+
+      // hexagon spins; ring sweeps a growing arc; dot orbits
+      hex.rotation = t * 0.6;
+      sweep.end = TAU * (0.5 + 0.5 * Math.sin(t));
+      const [ox, oy] = vec.add(orbit, vec.fromAngle(t * 1.5, 40));
+      dot.x = ox; dot.y = oy;
+    });
+  </script>
+</body>
+</html>
