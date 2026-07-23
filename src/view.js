@@ -250,6 +250,37 @@ export class View {
   }
 
   /**
+   * The pointer position of an event in **this view's own coordinate space** — the local
+   * counterpart to the event's global `clientX`/`clientY` (viewport coords). Returns an
+   * `[x, y]` tuple, matching the `math` helpers.
+   *
+   * It does the right thing for each medium:
+   * - **DOM:** CSS pixels relative to the view's root box (`0,0` = the view's top-left).
+   * - **SVG:** user-space (viewBox) coordinates of the nearest `<svg>` — the same units your
+   *   `render()` draws in — so a drag maps straight back to a model's `x`/`y`. The viewBox
+   *   scale is handled for you (via `getScreenCTM`).
+   *
+   * Expects a `MouseEvent`/`PointerEvent` (for touch, pass `event.touches[0]`). Call it from a
+   * listener while the view is mounted.
+   *
+   * @param {{ clientX: number, clientY: number }} event
+   * @returns {[number, number]} The point in this view's local space.
+   */
+  pointer(event) {
+    const el = /** @type {any} */ (this.el);
+    const svg = el.ownerSVGElement ?? (typeof SVGSVGElement !== 'undefined' && el instanceof SVGSVGElement ? el : null);
+    if (svg) {
+      const p = svg.createSVGPoint();
+      p.x = event.clientX;
+      p.y = event.clientY;
+      const loc = p.matrixTransform(svg.getScreenCTM().inverse());
+      return [loc.x, loc.y];
+    }
+    const r = el.getBoundingClientRect();
+    return [event.clientX - r.left, event.clientY - r.top];
+  }
+
+  /**
    * Observe an element's visibility with an `IntersectionObserver`, automatically
    * disconnected on `unmount()` (it is bound to this view's `signal`). Call inside
    * `onMount()`. The callback gets the standard `(entries, observer)` arguments, so a
