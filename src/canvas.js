@@ -367,6 +367,113 @@ export class Line extends Node2D {
 }
 
 /**
+ * A stroked (and optionally filled) path through `points` — the flexible sibling of {@link Line}.
+ * Beyond `Line` it exposes `lineJoin`/`lineCap` for smooth corners and rounded ends (curves from
+ * `plotPoints`/`circlePoints`, motion trails) and can `fill` a `closed` path. Stroking is on by
+ * default; pass `stroke: null` for a fill-only shape.
+ *
+ * Fields: `points` (`[x,y][]`), `stroke`, `lineWidth`, `lineJoin`, `lineCap`, `closed`, `fill`.
+ */
+export class Path extends Node2D {
+  /** @param {CanvasRenderingContext2D} ctx */
+  paint(ctx) {
+    const self = /** @type {any} */ (this);
+    /** @type {[number, number][]} */
+    const pts = self.points;
+    if (!pts || pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (self.closed) ctx.closePath();
+    if (self.fill) {
+      ctx.fillStyle = self.fill;
+      ctx.fill();
+    }
+    if (self.stroke !== null) {
+      ctx.strokeStyle = self.stroke ?? '#000';
+      ctx.lineWidth = self.lineWidth ?? 1;
+      ctx.lineJoin = self.lineJoin ?? 'miter';
+      ctx.lineCap = self.lineCap ?? 'butt';
+      ctx.stroke();
+    }
+  }
+}
+
+/**
+ * A filled, closed shape through `points`, with an optional outline — the filled counterpart to
+ * the stroke-only {@link Line}. Pair it with `polygonPoints`/`circlePoints` for regular n-gons and
+ * discs. Hit-tests with point-in-polygon, so a filled shape is clickable via {@link Stage#hitTest}.
+ *
+ * Fields: `points` (`[x,y][]`), `fill`, `stroke`, `lineWidth`.
+ */
+export class Polygon extends Node2D {
+  /** @param {CanvasRenderingContext2D} ctx */
+  paint(ctx) {
+    const self = /** @type {any} */ (this);
+    /** @type {[number, number][]} */
+    const pts = self.points;
+    if (!pts || pts.length < 3) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    if (self.fill) {
+      ctx.fillStyle = self.fill;
+      ctx.fill();
+    }
+    if (self.stroke) {
+      ctx.strokeStyle = self.stroke;
+      ctx.lineWidth = self.lineWidth ?? 1;
+      ctx.stroke();
+    }
+  }
+  /** @param {number} x @param {number} y @returns {boolean} */
+  contains(x, y) {
+    /** @type {[number, number][]} */
+    const pts = /** @type {any} */ (this).points;
+    if (!pts || pts.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i];
+      const [xj, yj] = pts[j];
+      const crosses = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (crosses) inside = !inside;
+    }
+    return inside;
+  }
+}
+
+/**
+ * A circular arc / ring segment / pie slice, centered on its origin. Strokes the arc from `start`
+ * to `end` (radians, default a full turn); set `wedge: true` to close through the centre so a
+ * `fill` draws a pie slice. `counter: true` sweeps anticlockwise.
+ *
+ * Fields: `r`, `start`, `end`, `stroke`, `lineWidth`, `fill`, `wedge`, `counter`.
+ */
+export class Arc extends Node2D {
+  /** @param {CanvasRenderingContext2D} ctx */
+  paint(ctx) {
+    const self = /** @type {any} */ (this);
+    const start = self.start ?? 0;
+    const end = self.end ?? Math.PI * 2;
+    ctx.beginPath();
+    if (self.wedge) ctx.moveTo(0, 0);
+    ctx.arc(0, 0, self.r, start, end, !!self.counter);
+    if (self.wedge) ctx.closePath();
+    if (self.fill) {
+      ctx.fillStyle = self.fill;
+      ctx.fill();
+    }
+    if (self.stroke) {
+      ctx.strokeStyle = self.stroke;
+      ctx.lineWidth = self.lineWidth ?? 1;
+      ctx.lineCap = self.lineCap ?? 'butt';
+      ctx.stroke();
+    }
+  }
+}
+
+/**
  * A line of text. Fields: `text`, `font`, `fill`, `align`, `baseline`. Note: canvas text has no
  * accessibility or selection — for real UI copy, use a DOM `View` projection instead.
  */
