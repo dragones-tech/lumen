@@ -15,12 +15,14 @@ const NAV = [
   {
     label: { en: 'Modules', es: 'Módulos' },
     items: [
-      'event-emitter', 'dom', 'animate', 'view', 'model', 'collection', 'collection-view',
-      'region', 'router', 'http', 'i18n', 'validate', 'element', 'canvas',
-    ].map((id) =>
-      // canvas shows two live examples on one page (bars + particles).
-      id === 'canvas' ? { id, doc: id, examples: ['canvas', 'particles'] } : { id, doc: id, example: id },
-    ),
+      'event-emitter', 'dom', 'math', 'animate', 'view', 'model', 'collection', 'collection-view',
+      'region', 'router', 'http', 'i18n', 'validate', 'element', 'svg', 'canvas',
+    ].map((id) => {
+      // canvas and svg each show two live examples on one page.
+      if (id === 'canvas') return { id, doc: id, examples: ['canvas', 'particles'] };
+      if (id === 'svg') return { id, doc: id, examples: ['svg', 'svg-circuit'] };
+      return { id, doc: id, example: id };
+    }),
   },
   {
     label: { en: 'Guides', es: 'Guías' },
