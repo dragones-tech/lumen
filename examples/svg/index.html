@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" data-mode="dark" data-theme="miasma">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · SVG — one state, a third projection</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dragones-tech/scc@e43d78874e68/scc.css" />
+  <link rel="stylesheet" href="../../assets/miasma.css" />
+  <style>
+    body { max-width: 46rem; margin-inline: auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 2rem; }
+    .muted { color: var(--text-muted); }
+    .controls { display: flex; gap: .5rem; margin: .6rem 0 1rem; }
+    svg { border: var(--border-width) solid var(--border); border-radius: var(--radius); background: var(--surface); display: block; max-width: 100%; }
+    svg .bar { cursor: pointer; transition: y .35s ease, height .35s ease, fill .2s ease; }
+    svg .bar:hover { opacity: .85; }
+    svg .trend { fill: none; stroke: color-mix(in oklab, transparent, var(--text) 45%); stroke-width: 1.5; stroke-dasharray: 4 4; transition: all .35s ease; }
+    .legend ul { list-style: none; padding: 0; margin: .6rem 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .legend li { display: flex; align-items: center; gap: .5rem; border: var(--border-width) solid var(--border); border-radius: 999px;
+                 padding: .25rem .3rem .25rem .6rem; background: var(--surface); }
+    .legend .dot { width: .7rem; height: .7rem; border-radius: 50%; }
+    .legend .v { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 1.6rem; text-align: right; }
+    .legend .x { border: none; background: color-mix(in oklab, transparent, var(--text) 14%); border-radius: 50%; width: 1.4rem; height: 1.4rem; line-height: 1; padding: 0; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>SVG · one state, a third projection</h1>
+  <p class="muted">
+    The same <code>Collection</code> drives an <strong>SVG</strong> chart and a DOM legend at once —
+    the SVG sibling of the <a href="../canvas/">canvas spike</a>. Because SVG is retained-mode DOM,
+    the chart is just a <code>CollectionView</code>: each model gets a <code>View</code> that renders
+    a <code>&lt;rect&gt;</code> via <code>svg()</code>. <strong>Click a bar</strong> to bump it —
+    hit-testing, hover and the dashed trend line all come for free from the DOM.
+  </p>
+
+  <div class="controls">
+    <button data-variant="primary" data-ref="rand">Randomize</button>
+    <button data-ref="add">Add quarter</button>
+  </div>
+
+  <div id="chart"></div>
+
+  <h2>Same data, as DOM</h2>
+  <div id="legend"></div>
+
+  <!-- The SVG root lives in a <template>, so it parses in the SVG namespace. Children mount into <g>. -->
+  <template id="svg-chart">
+    <svg viewBox="0 0 560 280" width="560" height="280">
+      <line x1="34" y1="250" x2="530" y2="250" stroke="color-mix(in oklab, transparent, currentColor 30%)" />
+      <g data-ref="bars"></g>
+      <polyline data-ref="trend" class="trend" points="" />
+    </svg>
+  </template>
+  <template id="bar-label">
+    <li>
+      <span class="dot" data-ref="dot"></span>
+      <span data-ref="q"></span>
+      <span class="v" data-ref="v"></span>
+      <button class="x" data-ref="remove" title="remove">×</button>
+    </li>
+  </template>
+
+  <script type="module">
+    import { Model, Collection, View, CollectionView, svg, toPoints } from '../../src/index.js';
+
+    const SCALE = 2.1;    // px per unit of value
+    const BASE_Y = 250;   // chart baseline
+    const STEP = 96;      // x distance between bars
+    const X0 = 46;        // first bar's x
+    const W = 56;         // bar width
+    const rand = () => 8 + Math.floor(Math.random() * 92);
+
+    // ── ONE state ──────────────────────────────────────────────────────────
+    class Bar extends Model {
+      get color() {
+        const v = this.get('value');
+        return v >= 80 ? '#dc2626' : v >= 50 ? '#f59e0b' : '#2563eb';
+      }
+    }
+    const data = new Collection(
+      [{ label: 'Q1', value: 40 }, { label: 'Q2', value: 92 }, { label: 'Q3', value: 21 }, { label: 'Q4', value: 64 }],
+      Bar,
+    );
+
+    // ── Projection A — SVG (a View per model, built with svg()) ─────────────
+    class SVGBar extends View {
+      render() { return svg('rect', { class: 'bar', rx: 3 }); }
+      onMount() {
+        const { model, collection } = this.props;
+        const rect = this.el;
+        const paint = () => {
+          const i = collection.models.indexOf(model);
+          const h = model.get('value') * SCALE;
+          rect.setAttribute('x', X0 + i * STEP);
+          rect.setAttribute('y', BASE_Y - h);
+          rect.setAttribute('width', W);
+          rect.setAttribute('height', h);
+          rect.setAttribute('fill', model.color);
+        };
+        paint();
+        model.on('change', paint, { signal: this.signal });               // value edited
+        collection.on('remove', paint, { signal: this.signal });          // indices shifted
+        collection.on('reset', paint, { signal: this.signal });
+        this.listen(rect, 'click', () =>                                  // hit-test = a DOM click
+          model.set('value', Math.min(100, model.get('value') + 12)));
+      }
+    }
+    class SVGChart extends CollectionView {
+      static template = '#svg-chart';
+      static childView = SVGBar;
+      static container = 'bars';
+      childProps() { return { collection: this.collection }; }
+      onMount() {
+        super.onMount();                                                  // reconcile the bars
+        const trend = () => {
+          const pts = this.collection.map((m, i) => [X0 + i * STEP + W / 2, BASE_Y - m.get('value') * SCALE]);
+          this.ui.trend.setAttribute('points', toPoints(pts));
+        };
+        trend();
+        for (const e of ['add', 'remove', 'reset', 'change'])
+          this.collection.on(e, trend, { signal: this.signal });
+      }
+    }
+    new SVGChart({ collection: data }).mount(document.querySelector('#chart'));
+
+    // ── Projection B — DOM legend ──────────────────────────────────────────
+    class BarLabel extends View {
+      static template = '#bar-label';
+      onMount() {
+        const { model } = this.props;
+        const paint = () => {
+          this.ui.q.textContent = model.get('label');
+          this.ui.v.textContent = model.get('value');
+          this.ui.dot.style.background = model.color;
+        };
+        paint();
+        model.on('change', paint, { signal: this.signal });
+        this.listen(this.ui.remove, 'click', () => data.remove(model));
+      }
+    }
+    const legendTpl = document.createElement('template');
+    legendTpl.innerHTML = '<div class="legend"><ul data-ref="list"></ul></div>';
+    class Legend extends CollectionView {
+      static template = legendTpl;
+      static childView = BarLabel;
+      static container = 'list';
+    }
+    new Legend({ collection: data }).mount(document.querySelector('#legend'));
+
+    // ── Controls — they only touch the data; both projections follow ───────
+    let n = 5;
+    document.querySelector('[data-ref=rand]').onclick = () => data.forEach((m) => m.set('value', rand()));
+    document.querySelector('[data-ref=add]').onclick = () => data.add({ label: 'Q' + n++, value: rand() });
+  </script>
+</body>
+</html>
