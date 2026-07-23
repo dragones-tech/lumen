@@ -81,6 +81,7 @@ npm run check
 |---|---|---|
 | `event-emitter` | ✅ done | [en](docs/en/event-emitter.md) · [es](docs/es/event-emitter.md) |
 | `dom` | ✅ done | [en](docs/en/dom.md) · [es](docs/es/dom.md) |
+| `math` | ✅ done | [en](docs/en/math.md) · [es](docs/es/math.md) — interpolation, trig/waves, point generators, `[x,y]` vectors, seeded randomness |
 | `animate` | ✅ done | [en](docs/en/animate.md) · [es](docs/es/animate.md) |
 | `view` | ✅ done | [en](docs/en/view.md) · [es](docs/es/view.md) — abstract base class you extend |
 | `model` | ✅ done | [en](docs/en/model.md) · [es](docs/es/model.md) |
@@ -92,7 +93,8 @@ npm run check
 | `i18n` | ✅ done | [en](docs/en/i18n.md) · [es](docs/es/i18n.md) — translations |
 | `validate` | ✅ done | [en](docs/en/validate.md) · [es](docs/es/validate.md) — model + UI validation |
 | `element` | ✅ done | [en](docs/en/element.md) · [es](docs/es/element.md) — use a View as a Custom Element (`defineElement`) |
-| `canvas` | 🧪 experimental | [en](docs/en/canvas.md) · [es](docs/es/canvas.md) — render the same Model/Collection to canvas (`Stage`/`Node2D`/`CanvasLayer`); import from `lumenjs/canvas` |
+| `svg` | ✅ done | [en](docs/en/svg.md) · [es](docs/es/svg.md) — SVG as a third projection: `svg()` namespaced factory + `toPoints`/`toPath`; model-driven SVG is just `CollectionView` |
+| `canvas` | 🧪 experimental | [en](docs/en/canvas.md) · [es](docs/es/canvas.md) — render the same Model/Collection to canvas (`Stage`/`Node2D`/`CanvasLayer`, `Rect`/`Circle`/`Line`/`Path`/`Polygon`/`Arc`); import from `lumenjs/canvas` |
 
 ## Guides · Guías
 
