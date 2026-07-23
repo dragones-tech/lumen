@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en" data-mode="dark" data-theme="miasma">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumen · SVG — a neon circuit, powered by models</title>
+  <style>
+    :root {
+      --bg: #04070a; --panel: #070d11; --edge: #0d1620;
+      --ink: #cfe8e4; --muted: #6f8f8c; --faint: #47605d;
+      --cyan: #5ff0dc; --cyan-bright: #b9fff2; --cyan-dim: rgba(95, 240, 220, .16);
+      --dead: rgba(120, 150, 150, .13); --amber: #f5b642;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--ink); font-family: var(--sans); line-height: 1.6;
+      background: radial-gradient(120% 90% at 50% -10%, #0a1620 0%, var(--bg) 55%) fixed;
+      padding: clamp(1.5rem, 4vw, 3rem) 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+    }
+    .stage { width: 100%; max-width: 52rem; }
+    header { text-align: center; margin-bottom: 1.5rem; }
+    .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; color: var(--cyan); margin: 0 0 .6rem; }
+    h1 { font-weight: 650; font-size: clamp(1.6rem, 5vw, 2.4rem); letter-spacing: -.02em; margin: 0 0 .5rem; text-wrap: balance; }
+    h1 em { font-style: normal; color: var(--cyan); }
+    .sub { max-width: 34rem; margin: 0 auto; color: var(--muted); font-size: .96rem; text-wrap: balance; }
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-bottom: 1rem; }
+    .btn {
+      font-family: var(--mono); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink);
+      background: var(--panel); border: 1px solid var(--edge); border-radius: .5rem; padding: .5rem .8rem; cursor: pointer;
+      transition: border-color .18s, color .18s; display: inline-flex; align-items: center; gap: .45rem;
+    }
+    .btn:hover { border-color: var(--cyan); color: var(--cyan-bright); }
+    .btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+    .btn .led { width: .5rem; height: .5rem; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); transition: background .18s, box-shadow .18s; }
+    .btn[aria-pressed="false"] .led { background: var(--faint); box-shadow: none; }
+    .board-frame { border: 1px solid var(--edge); border-radius: 1rem; background: var(--panel); padding: .5rem; overflow: hidden; box-shadow: 0 30px 80px -40px #000; }
+    .board { display: block; width: 100%; height: auto; border-radius: .65rem; touch-action: none; }
+
+    .traces { filter: url(#glow-fx); }
+    .nodes { filter: url(#glow-fx); }
+    .board.noglow .traces, .board.noglow .nodes { filter: none; }
+    .trace-base { fill: none; stroke: var(--cyan-dim); stroke-width: 2; transition: stroke .3s; }
+    .trace-flow { fill: none; stroke: var(--cyan-bright); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: .5 14; animation: flow .9s linear infinite; transition: opacity .4s; }
+    .trace.dead .trace-base { stroke: var(--dead); }
+    .trace.dead .trace-flow { opacity: 0; animation: none; }
+    @keyframes flow { to { stroke-dashoffset: -14.5; } }
+
+    .node { cursor: grab; }
+    .node.grab { cursor: grabbing; }
+    .node .halo { fill: var(--cyan-dim); transition: fill .25s; }
+    .node .ring { fill: none; stroke: var(--cyan); stroke-width: 1.5; transition: stroke .25s; }
+    .node .core { fill: var(--cyan-bright); transition: fill .25s; }
+    .node .label { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; fill: var(--ink); text-transform: uppercase; pointer-events: none; transition: fill .25s; }
+    .node:hover .halo { fill: rgba(95, 240, 220, .3); }
+    .node:focus-visible .ring { stroke: var(--amber); stroke-width: 2.5; }
+    .node.off .halo { fill: rgba(120, 150, 150, .08); }
+    .node.off .ring { stroke: var(--faint); }
+    .node.off .core { fill: var(--faint); }
+    .node.off .label { fill: var(--muted); }
+
+    .caption { margin: 1.3rem auto 0; max-width: 38rem; text-align: center; color: var(--muted); font-size: .88rem; }
+    .caption kbd { font-family: var(--mono); font-size: .82em; color: var(--cyan); background: var(--panel); border: 1px solid var(--edge); border-radius: .3rem; padding: .05rem .4rem; }
+    .caption code { font-family: var(--mono); color: var(--ink); }
+    @media (prefers-reduced-motion: reduce) { .trace-flow { animation: none; opacity: .55; } }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <header>
+      <p class="eyebrow">Lumen · one Collection, drawn as SVG</p>
+      <h1>The traces <em>power up</em></h1>
+      <p class="sub">
+        Nodes and wires are two <code>Collection</code>s. Each one is a <code>CollectionView</code> that
+        projects a model to an SVG element — the exact same class you'd use for a DOM list. Drag a node,
+        or click one to cut its power.
+      </p>
+    </header>
+
+    <div class="controls">
+      <button class="btn" id="glow" aria-pressed="true"><span class="led"></span> Glow</button>
+      <button class="btn" id="power" aria-pressed="true"><span class="led"></span> Power</button>
+      <button class="btn" id="scatter">⤨ Scatter</button>
+      <button class="btn" id="replay">↻ Redraw</button>
+    </div>
+
+    <div class="board-frame">
+      <!-- The SVG root lives in a <template>, so defs/filter/pattern parse in the SVG namespace. -->
+      <template id="board">
+        <svg class="board" viewBox="0 0 720 440" role="img"
+             aria-label="An interactive neon circuit: seven labelled nodes joined by glowing traces.">
+          <defs>
+            <filter id="glow-fx" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="3.4" result="b" />
+              <feMerge>
+                <feMergeNode in="b" /><feMergeNode in="b" /><feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M32 0H0V32" fill="none" stroke="rgba(56,224,200,.07)" stroke-width="1" />
+            </pattern>
+          </defs>
+          <rect x="0" y="0" width="720" height="440" fill="url(#grid)" />
+        </svg>
+      </template>
+      <div id="app"></div>
+    </div>
+
+    <p class="caption">
+      <kbd>Drag</kbd> a node · <kbd>Click</kbd> to toggle power · <kbd>Tab</kbd> + <kbd>Enter</kbd> too.
+      Turn <kbd>Glow</kbd> off to see the <code>feGaussianBlur</code> filter's whole job.
+    </p>
+  </div>
+
+  <script type="module">
+    import { Model, Collection, View, CollectionView, svg, lerp, random } from '../../src/index.js';
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── State: a graph of node + edge models (plain Lumen) ──────────────────
+    const nodes = new Collection([
+      { id: 'pwr', label: 'PWR', x: 70,  y: 220, powered: true },
+      { id: 'cpu', label: 'CPU', x: 250, y: 110, powered: true },
+      { id: 'mem', label: 'MEM', x: 250, y: 330, powered: true },
+      { id: 'gpu', label: 'GPU', x: 450, y: 80,  powered: true },
+      { id: 'sys', label: 'SYS', x: 455, y: 225, powered: true },
+      { id: 'net', label: 'NET', x: 450, y: 370, powered: true },
+      { id: 'io',  label: 'I/O', x: 650, y: 220, powered: true },
+    ]);
+    const byId = Object.fromEntries(nodes.map((n) => [n.get('id'), n]));
+    const edges = new Collection(
+      [['pwr','cpu'],['pwr','mem'],['cpu','gpu'],['cpu','sys'],['mem','sys'],
+       ['mem','net'],['gpu','io'],['sys','io'],['net','io'],['cpu','mem']]
+        .map(([from, to]) => ({ from, to })),
+    );
+
+    // ── Manhattan routing with rounded elbows (a PCB trace) ─────────────────
+    function trace(a, b) {
+      const ax = a.get('x'), ay = a.get('y'), bx = b.get('x'), by = b.get('y');
+      const mx = (ax + bx) / 2;
+      const r = Math.min(12, Math.abs(mx - ax), Math.abs(mx - bx), Math.abs(by - ay) / 2 || 12);
+      const sx1 = Math.sign(mx - ax) || 1, sy = Math.sign(by - ay) || 1, sx2 = Math.sign(bx - mx) || 1;
+      return `M ${ax} ${ay} L ${mx - sx1 * r} ${ay} Q ${mx} ${ay} ${mx} ${ay + sy * r}`
+           + ` L ${mx} ${by - sy * r} Q ${mx} ${by} ${mx + sx2 * r} ${by} L ${bx} ${by}`;
+    }
+
+    // ── One View per edge — re-routes when either endpoint changes ──────────
+    class EdgeView extends View {
+      render() {
+        this.base = svg('path', { class: 'trace-base' });
+        this.flow = svg('path', { class: 'trace-flow' });
+        return svg('g', { class: 'trace' }, this.base, this.flow);
+      }
+      onMount() {
+        const { a, b } = this.props;
+        const paint = () => {
+          const d = trace(a, b);
+          this.base.setAttribute('d', d);
+          this.flow.setAttribute('d', d);
+          this.el.classList.toggle('dead', !(a.get('powered') && b.get('powered')));
+        };
+        paint();
+        a.on('change', paint, { signal: this.signal });   // drag or power → re-route, auto-cleaned
+        b.on('change', paint, { signal: this.signal });
+        this.drawIn();
+      }
+      drawIn() {
+        const { base, flow } = this;
+        if (reduced) { base.style.strokeDasharray = 'none'; flow.style.opacity = ''; return; }
+        const len = base.getTotalLength();
+        base.style.transition = 'none';
+        base.style.strokeDasharray = len;
+        base.style.strokeDashoffset = len;
+        flow.style.opacity = '0';
+        void base.getBoundingClientRect();                 // force reflow so the transition takes
+        const delay = Math.max(0, edges.models.indexOf(this.props.model)) * 0.08;
+        base.style.transition = `stroke-dashoffset .9s ease ${delay}s`;
+        requestAnimationFrame(() => (base.style.strokeDashoffset = '0'));
+        setTimeout(() => {
+          base.style.transition = '';
+          base.style.strokeDasharray = 'none';             // solid again, so re-routes look right
+          flow.style.opacity = '';
+        }, (delay + 0.9) * 1000 + 40);
+      }
+    }
+
+    // ── One View per node — drag, click-to-toggle, keyboard ─────────────────
+    class NodeView extends View {
+      render() {
+        const m = this.props.model;
+        return svg('g',
+          { class: 'node', tabindex: '0', role: 'button', transform: `translate(${m.get('x')},${m.get('y')})` },
+          svg('title', null, `${m.get('label')} — drag to move, click to toggle power`),
+          svg('circle', { class: 'halo', r: 20 }),
+          svg('circle', { class: 'ring', r: 13 }),
+          svg('circle', { class: 'core', r: 7 }),
+          svg('text', { class: 'label', y: -28, 'text-anchor': 'middle' }, m.get('label')),
+        );
+      }
+      onMount() {
+        const m = this.props.model, g = this.el;
+        const sync = () => {
+          g.setAttribute('transform', `translate(${m.get('x')},${m.get('y')})`);
+          g.classList.toggle('off', !m.get('powered'));
+        };
+        sync();
+        m.on('change', sync, { signal: this.signal });
+        let dragging = false, moved = false;
+        this.listen(g, 'pointerdown', (e) => { dragging = true; moved = false; g.classList.add('grab'); g.setPointerCapture(e.pointerId); });
+        this.listen(g, 'pointermove', (e) => { if (!dragging) return; moved = true; const p = this.point(e); m.set({ x: Math.round(p.x), y: Math.round(p.y) }); });
+        this.listen(g, 'pointerup', (e) => { dragging = false; g.classList.remove('grab'); g.releasePointerCapture?.(e.pointerId); if (!moved) m.set('powered', !m.get('powered')); });
+        this.listen(g, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); m.set('powered', !m.get('powered')); } });
+      }
+      point(e) {                                           // client coords → SVG viewBox coords
+        const s = this.el.ownerSVGElement, p = s.createSVGPoint();
+        p.x = e.clientX; p.y = e.clientY;
+        return p.matrixTransform(s.getScreenCTM().inverse());
+      }
+    }
+
+    // ── Each layer is a CollectionView whose root is an SVG <g> ──────────────
+    class TracesLayer extends CollectionView {
+      static childView = EdgeView;
+      render() { return svg('g', { class: 'traces' }); }
+      childProps(edge) { return { a: byId[edge.get('from')], b: byId[edge.get('to')] }; }
+    }
+    class NodesLayer extends CollectionView {
+      static childView = NodeView;
+      render() { return svg('g', { class: 'nodes' }); }
+    }
+
+    // ── The board: a View that owns the <svg> and hosts the two layers ──────
+    class Board extends View {
+      static template = '#board';
+      onMount() {
+        this.traces = new TracesLayer({ collection: edges });
+        this.nodes = new NodesLayer({ collection: nodes });
+        this.addChild(this.traces, this.el);               // traces first (behind)…
+        this.addChild(this.nodes, this.el);                // …nodes on top
+      }
+    }
+
+    const board = new Board();
+    await board.mount(document.querySelector('#app'));
+    const svgEl = board.el;
+
+    // ── Controls — they only touch state (or the filter); views follow ──────
+    const glowBtn = document.querySelector('#glow');
+    glowBtn.onclick = () => {
+      const off = svgEl.classList.toggle('noglow');
+      glowBtn.setAttribute('aria-pressed', off ? 'false' : 'true');
+    };
+    const powerBtn = document.querySelector('#power');
+    powerBtn.onclick = () => {
+      const anyOn = nodes.models.some((n) => n.get('powered'));
+      nodes.forEach((n) => n.set('powered', !anyOn));
+      powerBtn.setAttribute('aria-pressed', anyOn ? 'false' : 'true');
+    };
+    document.querySelector('#scatter').onclick = () => {
+      const starts = nodes.map((n) => [n.get('x'), n.get('y')]);
+      const targets = nodes.map(() => [random(90, 630), random(75, 365)]);
+      if (reduced) { nodes.forEach((n, i) => n.set({ x: targets[i][0] | 0, y: targets[i][1] | 0 })); return; }
+      const t0 = performance.now(), dur = 700;
+      const step = (now) => {
+        const t = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - t, 3);
+        nodes.forEach((n, i) => n.set({
+          x: Math.round(lerp(starts[i][0], targets[i][0], e)),
+          y: Math.round(lerp(starts[i][1], targets[i][1], e)),
+        }));
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    document.querySelector('#replay').onclick = () => board.traces.children.forEach((v) => v.drawIn());
+  </script>
+</body>
+</html>
