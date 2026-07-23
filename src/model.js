@@ -5,10 +5,11 @@ import { runRules } from './validate.js';
 /**
  * Observable data for a single entity (a user, a todo, a setting).
  *
- * State is explicit: you read with `get`, write with `set`, and `set` emits events so
- * observers can react. There are no proxies and no hidden interception — assigning to
- * `model.data.x` directly will NOT notify; that is deliberate, so every notification
- * has a visible cause.
+ * State is explicit, and **nothing updates by magic**: you read with `get`, write with
+ * `set`, and `set` re-renders no view on its own — it emits an event, and a view *you*
+ * subscribed makes the surgical change it chose. You control *when* and *what* changes.
+ * There are no proxies and no hidden interception — assigning to `model.data.x` directly
+ * will NOT notify; that is deliberate, so every notification has a visible cause you wrote.
  *
  * Two events fire on a real change:
  * - `change:<key>` with `{ value, previous, model }` — for surgical updates.
