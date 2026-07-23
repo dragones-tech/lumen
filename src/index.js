@@ -10,6 +10,11 @@
 
 export { EventEmitter } from './event-emitter.js';
 export { $, $$, clone, refs } from './dom.js';
+export {
+  TAU, clamp, lerp, invLerp, remap, deg, rad, wave,
+  circlePoints, polygonPoints, arcPoints, plotPoints, vec,
+  rng, random, randInt, chance, randSign, gaussian, jitter, pick, shuffle, inRect, onCircle, inDisc,
+} from './math.js';
 export { play, fadeIn, fadeOut, slideIn, slideOut } from './animate.js';
 export { View } from './view.js';
 export { Model } from './model.js';
@@ -21,4 +26,5 @@ export { Http, HttpError } from './http.js';
 export { Resource } from './resource.js';
 export { I18n } from './i18n.js';
 export { defineElement } from './element.js';
+export { svg, toPoints, toPath } from './svg.js';
 export { runRules, required, minLength, maxLength, pattern, email, min, max, match } from './validate.js';
