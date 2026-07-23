@@ -71,7 +71,12 @@ Fields: `x`, `y`, `scale`, `rotation`, `alpha`, `visible`, `model`.
 | `Rect` | `w`, `h`, `fill`, `stroke`, `lineWidth` | ✅ box |
 | `Circle` | `r`, `fill`, `stroke`, `lineWidth` | ✅ radius |
 | `Line` | `points` (`[x,y][]`), `stroke`, `lineWidth`, `closed` | — |
+| `Path` | `points`, `stroke`, `lineWidth`, `lineJoin`, `lineCap`, `closed`, `fill` | — |
+| `Polygon` | `points` (`[x,y][]`), `fill`, `stroke`, `lineWidth` | ✅ point-in-polygon |
+| `Arc` | `r`, `start`, `end`, `stroke`, `lineWidth`, `fill`, `wedge`, `counter` | — |
 | `Text` | `text`, `font`, `fill`, `align`, `baseline` | — |
+
+`Path` is the flexible sibling of `Line` (join/cap control, optional fill; `stroke: null` for fill-only). `Polygon` is the filled counterpart to the stroke-only `Line`. `Arc` draws a ring segment, or a pie slice with `wedge: true` + `fill`. All three pair naturally with the [`math`](./math.md) point generators (`polygonPoints`, `arcPoints`, `plotPoints`).
 
 ### `CanvasLayer` — one node per model
 

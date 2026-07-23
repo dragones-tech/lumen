@@ -7,6 +7,7 @@ const BASE = 'https://dragones-tech.github.io/lumen';
 const MODULES = [
   ['event-emitter', 'Typed event bus — on/once/off/emit, AbortSignal cleanup, no global singleton.'],
   ['dom', 'clone(template), refs(root), $, $$ — the bridge between <template> markup and classes.'],
+  ['math', 'Pure math + geometry — interpolation, trig/waves, point generators, [x,y] vectors, seeded randomness.'],
   ['animate', 'Promise-based fadeIn/fadeOut/slideIn/slideOut over the Web Animations API.'],
   ['view', 'Abstract base class you extend — lifecycle, refs, static regions, surgical updates, signal-bound observe/onResize/onMedia/interval.'],
   ['model', 'Observable single-entity state (get/set, change events), async validation via static rules, and static storage persistence.'],
@@ -19,6 +20,7 @@ const MODULES = [
   ['i18n', 'Tiny reactive translations with {interpolation}, nested keys, and fallback.'],
   ['validate', 'Composable sync/async validation rules; async Model.validate() returns errors keyed by field.'],
   ['element', 'defineElement(tag, ViewClass) — use a View as a Custom Element.'],
+  ['svg', 'SVG as a third projection — svg() namespaced factory + toPoints/toPath; model-driven SVG is just CollectionView.'],
   ['canvas', 'Experimental canvas layer — Stage/Node2D/CanvasLayer; render the same Model/Collection to canvas as well as DOM.'],
 ];
 

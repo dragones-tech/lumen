@@ -74,7 +74,12 @@ Campos: `x`, `y`, `scale`, `rotation`, `alpha`, `visible`, `model`.
 | `Rect` | `w`, `h`, `fill`, `stroke`, `lineWidth` | ✅ caja |
 | `Circle` | `r`, `fill`, `stroke`, `lineWidth` | ✅ radio |
 | `Line` | `points` (`[x,y][]`), `stroke`, `lineWidth`, `closed` | — |
+| `Path` | `points`, `stroke`, `lineWidth`, `lineJoin`, `lineCap`, `closed`, `fill` | — |
+| `Polygon` | `points` (`[x,y][]`), `fill`, `stroke`, `lineWidth` | ✅ punto-en-polígono |
+| `Arc` | `r`, `start`, `end`, `stroke`, `lineWidth`, `fill`, `wedge`, `counter` | — |
 | `Text` | `text`, `font`, `fill`, `align`, `baseline` | — |
+
+`Path` es el hermano flexible de `Line` (control de join/cap, fill opcional; `stroke: null` para solo relleno). `Polygon` es la contraparte rellena de `Line` (solo trazo). `Arc` dibuja un segmento de anillo, o una porción de tarta con `wedge: true` + `fill`. Los tres encajan con los generadores de puntos de [`math`](./math.md) (`polygonPoints`, `arcPoints`, `plotPoints`).
 
 ### `CanvasLayer` — un nodo por modelo
 

@@ -342,6 +342,134 @@ const ui = refs(el);
 
 ---
 
+<!-- docs/en/math.md -->
+
+# math
+
+Small, pure math + geometry helpers — the trigonometry, interpolation, point generation and randomness that drawing and animating otherwise keep re-deriving by hand. Renderer-agnostic: the same functions position a DOM `View`, drive a tween, or feed a canvas `Path`.
+
+## Philosophy
+
+- **Functions, not a system.** Like `dom`/`animate`/`validate`, this is a bag of stateless helpers. Importing it has no side effects; nothing touches `window` or the document.
+- **Tuples, not a `Vec2` class.** Points and vectors are plain `[x, y]` arrays. That keeps the layer functional (per the repo's "stateless helpers are functions" rule), composes without ceremony (`const [x, y] = p`), matches the canvas `Line.points`/`Path.points` shape so a generator's output is drawable as-is, and spreads into the native API (`ctx.lineTo(...p)`).
+- **Renderer-agnostic.** `remap` maps a data domain onto pixels; `circlePoints` feeds a canvas or an SVG `points` attribute. Nothing here knows about canvas.
+- **Reproducible randomness on purpose.** `Math.random` is fine for a coin flip, but a *seeded* generator (`rng(seed)`) makes a generative scene or particle field repeatable — and that determinism is more transparent, not less: you own the seed.
+
+## API
+
+### Interpolation & ranges
+
+| Function | Description |
+|---|---|
+| `TAU` | A full turn in radians (`2π`). |
+| `clamp(v, lo, hi)` | Constrain `v` to `[lo, hi]`. |
+| `lerp(a, b, t)` | Linear interpolate; `t=0`→`a`, `t=1`→`b`. Not clamped (extrapolates). |
+| `invLerp(a, b, v)` | Inverse of `lerp`: where `v` sits in `[a,b]` as `0..1`. `0` when `a===b`. |
+| `remap(v, inMin, inMax, outMin, outMax)` | Map `v` from one range onto another. The workhorse for "data → pixels". |
+
+### Angles & waves
+
+| Function | Description |
+|---|---|
+| `deg(radians)` | Radians → degrees. |
+| `rad(degrees)` | Degrees → radians. |
+| `wave(t, options?)` | Sinusoid: `offset + amp · sin(TAU · freq · t + phase)`. |
+
+**`WaveOptions`** — `freq` (cycles per unit `t`, default `1`), `amp` (peak offset, `1`), `phase` (radians, `0`), `offset` (centre line, `0`). For a cosine, pass `phase: TAU / 4`.
+
+### Point generators (→ `[x, y][]`)
+
+| Function | Description |
+|---|---|
+| `circlePoints(cx, cy, r, segments?)` | `segments` points around a circle (open ring; default `64`). |
+| `polygonPoints(cx, cy, r, sides, rotation?)` | The `sides` vertices of a regular polygon. `rotation` spins it (`-TAU/4` = vertex up). |
+| `arcPoints(cx, cy, r, start, end, segments?)` | Points along an arc, **inclusive** of both ends (`segments+1` points). |
+| `plotPoints(fn, x0, x1, step?)` | Sample `y = fn(x)` across `[x0, x1]`; endpoints land exactly. |
+
+### Vectors — `vec.*` (over `[x, y]` tuples)
+
+| Function | Description |
+|---|---|
+| `vec.add(a, b)` / `vec.sub(a, b)` | Sum / difference. |
+| `vec.scale(a, s)` | Multiply by a scalar. |
+| `vec.len(a)` / `vec.dist(a, b)` | Magnitude / distance. |
+| `vec.norm(a)` | Unit vector (`[0,0]` for a zero vector — never NaN). |
+| `vec.rot(a, angle)` | Rotate around the origin by `angle` radians. |
+| `vec.dot(a, b)` | Dot product. |
+| `vec.angle(a)` | Angle from +x axis (`atan2`). |
+| `vec.fromAngle(angle, len?)` | A vector of length `len` at `angle`. |
+| `vec.lerp(a, b, t)` | Component-wise lerp between two points. |
+
+### Randomness
+
+| Function | Description |
+|---|---|
+| `random(min?, max?)` | Float in `[min, max)` (default `[0, 1)`). |
+| `randInt(min, max)` | Integer in `[min, max]`, **inclusive**. |
+| `chance(p?)` | `true` with probability `p` (default `0.5`). |
+| `randSign()` | `-1` or `+1`, evenly. |
+| `gaussian(mean?, sd?)` | Normal-distributed (Box–Muller) — natural jitter that clusters near the mean. |
+| `jitter(v, amount)` | `v` nudged by a flat `±amount`. |
+| `pick(items)` | A uniformly-random element. |
+| `shuffle(items)` | A shuffled **copy** (non-mutating, Fisher–Yates). |
+| `inRect(x0, y0, x1, y1)` | A random point inside a rectangle. |
+| `onCircle(cx, cy, r)` | A random point on a circle's edge. |
+| `inDisc(cx, cy, r)` | A random point inside a disc (uniform by area). |
+| `rng(seed)` | A **seeded**, reproducible bundle with all of the above. |
+
+**`rng(seed)`** returns a `Random` object shaped exactly like the global helpers (`.random`, `.inDisc`, `.pick`, …), but every run from the same `seed` yields the same sequence — repeatable generative scenes and deterministic tests. It uses a small, fast `mulberry32` generator (not cryptographic).
+
+## Examples
+
+Draw a scrolling sine wave with the canvas `Path` primitive:
+
+```js
+import { wave, plotPoints } from 'lumenjs/math';
+import { Stage, Path } from 'lumenjs/canvas';
+
+const stage = new Stage(canvas);
+const line = stage.add(new Path({ stroke: '#38e0c8', lineWidth: 2, lineJoin: 'round' }));
+
+let t = 0;
+stage.animate((dt) => {
+  t += dt;
+  line.points = plotPoints((x) => 120 + wave(x, { freq: 1 / 140, amp: 30, phase: -t * 2 }), 0, 560, 4);
+});
+```
+
+A regular hexagon, and orbiting motion via vectors:
+
+```js
+import { polygonPoints, vec, TAU } from 'lumenjs/math';
+import { Polygon, Circle } from 'lumenjs/canvas';
+
+const hex = new Polygon({ x: 120, y: 120, points: polygonPoints(0, 0, 42, 6, -TAU / 4), stroke: '#38e0c8' });
+
+// each frame: put a dot at radius 40, angle t (radians)
+const [x, y] = vec.add([300, 120], vec.fromAngle(t, 40));
+```
+
+A **reproducible** starfield — identical on every reload:
+
+```js
+import { rng } from 'lumenjs/math';
+
+const r = rng(20260722);
+const stars = Array.from({ length: 90 }, () => r.inDisc(cx, cy, 200)); // same points every run
+```
+
+See the [`math` example](https://dragones-tech.github.io/lumen/examples/math/) for all of it animated together.
+
+## Design notes
+
+- **Open rings.** `circlePoints`/`polygonPoints` do not repeat the first vertex at the end. Close the shape with `Line`/`Path` (`closed: true`) or a `Polygon` — the drawing side owns closure, not the generator.
+- **Uniform discs.** `inDisc` takes the √ of the random radius, so points spread evenly by *area* instead of clumping toward the centre (the naive mistake).
+- **One source of truth for random.** The global helpers and every `rng` bundle run through the same internal builder over a `() => number` source, so seeded and unseeded behaviour can never drift apart.
+- **`gaussian` vs `random`.** Reach for `gaussian` when you want values that cluster (natural-looking scatter, subtle motion); `random` is flat across its range.
+
+
+---
+
 <!-- docs/en/animate.md -->
 
 # animate
@@ -1845,6 +1973,111 @@ leave-animations aren't expected.
 
 ---
 
+<!-- docs/en/svg.md -->
+
+# svg
+
+SVG as a **third projection** of your state — alongside DOM (`View`) and canvas (`Node2D`). One `Collection` can drive a DOM legend, a canvas chart and an SVG chart at once: one source of truth, three renderers.
+
+## Philosophy
+
+- **SVG is retained-mode DOM — so `View` already handles it.** A view's whole lifecycle (`onMount`, `signal`, `listen`, `refs` via `data-ref`, `regions`, `animate`) runs over SVG nodes unchanged, because they *are* DOM. Hit-testing, hover, focus and accessibility come for free — no manual render loop, no `hitTest`.
+- **Model-driven SVG is just `CollectionView`.** Mount the child views into a `<g data-ref="…">` inside an `<svg>` and each model gets its own SVG view, kept in sync by the same keyed reconciliation as the DOM. No `SvgLayer` — you reuse what exists.
+- **The only gap is namespacing.** A whole `<svg>…</svg>` in a `<template>` parses correctly, so a `View` with an `<svg>` root works today. But a *bare* `<circle>`/`<g>` in a template lands in the wrong namespace and never renders. `svg()` closes that gap — it is to SVG what `clone` is to an HTML `<template>`.
+- **The `math` generators feed SVG unchanged.** `polygonPoints`/`arcPoints`/`plotPoints` produce `[x,y][]`; `toPoints`/`toPath` turn those into `points`/`d` attributes — the same points you'd hand a canvas `Line`.
+
+## When SVG, when canvas?
+
+| | SVG (this module) | Canvas (`canvas`) |
+|---|---|---|
+| Model | Retained DOM nodes | Immediate-mode redraw |
+| Interaction / a11y | Free (DOM events, `<title>`) | Manual (`hitTest`) |
+| Styling / glow | CSS (`filter: drop-shadow`, classes) | Hand-painted |
+| Crispness | Vector at any zoom | Raster |
+| Scale ceiling | Hundreds of nodes | Thousands (particles) |
+
+Reach for **SVG** for crisp, interactive, styleable geometry (charts, diagrams, HUDs); **canvas** when you have thousands of moving things.
+
+## API
+
+| Function | Description |
+|---|---|
+| `svg(tag, attrs?, ...children)` | Create a namespaced SVG element, set `attrs`, append children. Returns `SVGElement`. |
+| `toPoints(points)` | `[x,y][]` → a `points` string (`"x,y x,y …"`) for `<polyline>`/`<polygon>`. |
+| `toPath(points, closed?)` | `[x,y][]` → a path `d` string (`"M x y L x y …"`), optionally closed with `Z`. |
+
+**`svg(tag, attrs, …children)`** — attribute values are stringified; `true` sets a bare attribute, `false`/`null`/`undefined` skip it (so `cond && svg(...)` and optional attributes just work). Children may be nodes or text, passed individually or as arrays; falsy children are skipped. Set a `data-ref` in `attrs` and `refs()` picks the node up like any other.
+
+## Example — a bar per model, in SVG
+
+The SVG root lives in a `<template>` (so it parses in the SVG namespace); children mount into its `<g>`:
+
+```html
+<template id="chart">
+  <svg viewBox="0 0 560 280">
+    <g data-ref="bars"></g>
+    <polyline data-ref="trend" fill="none" stroke="#888" points="" />
+  </svg>
+</template>
+```
+
+```js
+import { View, CollectionView, svg, toPoints } from 'lumenjs';
+
+// each model → a <rect>, built with svg() and updated surgically
+class SVGBar extends View {
+  render() { return svg('rect', { rx: 3 }); }
+  onMount() {
+    const { model, collection } = this.props;
+    const paint = () => {
+      const i = collection.models.indexOf(model);
+      const h = model.get('value') * 2;
+      this.el.setAttribute('x', 46 + i * 96);
+      this.el.setAttribute('y', 250 - h);
+      this.el.setAttribute('width', 56);
+      this.el.setAttribute('height', h);
+      this.el.setAttribute('fill', model.color);
+    };
+    paint();
+    model.on('change', paint, { signal: this.signal });
+    this.listen(this.el, 'click', () => model.set('value', model.get('value') + 12)); // free hit-test
+  }
+}
+
+class Chart extends CollectionView {
+  static template = '#chart';
+  static childView = SVGBar;
+  static container = 'bars';
+  childProps() { return { collection: this.collection }; }
+}
+
+new Chart({ collection: data }).mount(document.querySelector('#app'));
+```
+
+A `<path>`/`<polyline>` fed by `math` is one line — the same points you'd give a canvas `Line`:
+
+```js
+import { plotPoints, wave } from 'lumenjs';
+import { svg, toPath } from 'lumenjs';
+
+const curve = svg('path', {
+  d: toPath(plotPoints((x) => 120 + wave(x, { freq: 1 / 140, amp: 30 }), 0, 560, 4)),
+  fill: 'none', stroke: '#38e0c8', 'stroke-width': 2,
+});
+```
+
+See the [`svg` example](https://dragones-tech.github.io/lumen/examples/svg/) — one `Collection` as an SVG chart **and** a DOM legend, the SVG sibling of the [canvas spike](./canvas.md).
+
+## Design notes
+
+- **A View that renders SVG.** Override `render()` to return `svg(...)` (a child shape), or set `static template` to a `<template>` whose root is `<svg>` (a whole diagram). Both flow through the normal lifecycle. In a type-checked project, `render()`'s base return is `HTMLElement`; an `SVGElement` is a DOM node and works at runtime — cast if your `tsc` config is strict about the return.
+- **Namespacing, once.** `svg()` is the only place `createElementNS` appears. Anything you build through it — and any `data-ref` inside it — behaves like the rest of your DOM.
+- **Not a wrapper over `View`.** There is no `SvgView` class, on purpose: SVG needed no new lifecycle, only a namespaced element factory. That is the whole module.
+- **Watch for `id` collisions.** SVG references (`filter`, `clipPath`, `mask`, `linearGradient`, a `<use>` target…) resolve by `id` via `url(#id)`, which — like `getElementById` — picks the **first** element with that id in document order. If a DOM control shares the id (a `<button id="glow">` next to a `<filter id="glow">`), the reference silently binds to the wrong element and the effect just doesn't apply. Give SVG defs their own namespaced ids (`#glow-fx`, `#trace-mask`) so they never clash with page controls.
+
+
+---
+
 <!-- docs/en/canvas.md -->
 
 # Canvas (experimental)
@@ -1920,7 +2153,12 @@ Fields: `x`, `y`, `scale`, `rotation`, `alpha`, `visible`, `model`.
 | `Rect` | `w`, `h`, `fill`, `stroke`, `lineWidth` | ✅ box |
 | `Circle` | `r`, `fill`, `stroke`, `lineWidth` | ✅ radius |
 | `Line` | `points` (`[x,y][]`), `stroke`, `lineWidth`, `closed` | — |
+| `Path` | `points`, `stroke`, `lineWidth`, `lineJoin`, `lineCap`, `closed`, `fill` | — |
+| `Polygon` | `points` (`[x,y][]`), `fill`, `stroke`, `lineWidth` | ✅ point-in-polygon |
+| `Arc` | `r`, `start`, `end`, `stroke`, `lineWidth`, `fill`, `wedge`, `counter` | — |
 | `Text` | `text`, `font`, `fill`, `align`, `baseline` | — |
+
+`Path` is the flexible sibling of `Line` (join/cap control, optional fill; `stroke: null` for fill-only). `Polygon` is the filled counterpart to the stroke-only `Line`. `Arc` draws a ring segment, or a pie slice with `wedge: true` + `fill`. All three pair naturally with the [`math`](./math.md) point generators (`polygonPoints`, `arcPoints`, `plotPoints`).
 
 ### `CanvasLayer` — one node per model
 
