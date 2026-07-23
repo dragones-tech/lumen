@@ -106,6 +106,37 @@ export class Stage {
   }
 
   /**
+   * The pointer position of an event in **canvas drawing space** — an `[x, y]` tuple ready for
+   * {@link Stage#hitTest} or {@link Node2D#toLocal}. This is the local counterpart to the event's
+   * global `clientX`/`clientY` (viewport coords).
+   *
+   * It corrects for the gap the raw math misses: when the canvas is *displayed* at a different CSS
+   * size than its backing resolution (`width`/`height` vs. a `max-width`-scaled box), it scales by
+   * `canvas.width / rect.width` — so a click still lands on the right pixel. `clientX - rect.left`
+   * alone would be off whenever the canvas is responsive.
+   *
+   * @param {{ clientX: number, clientY: number }} event - A `MouseEvent`/`PointerEvent` (touch: pass `event.touches[0]`).
+   * @returns {[number, number]} The point in canvas space.
+   */
+  pointer(event) {
+    const r = this.canvas.getBoundingClientRect();
+    const sx = r.width ? this.canvas.width / r.width : 1;
+    const sy = r.height ? this.canvas.height / r.height : 1;
+    return [(event.clientX - r.left) * sx, (event.clientY - r.top) * sy];
+  }
+
+  /**
+   * The topmost {@link Node2D} under a pointer event, or `null` — {@link Stage#pointer} +
+   * {@link Stage#hitTest} in one call, so you don't re-derive canvas coordinates in every
+   * `pointerdown`/`pointermove` handler.
+   * @param {{ clientX: number, clientY: number }} event
+   * @returns {Node2D | null}
+   */
+  pick(event) {
+    return this.hitTest(...this.pointer(event));
+  }
+
+  /**
    * Register a per-frame callback (a tween or emitter). The ticker runs while any are active.
    * @param {(dt: number) => void} update - Called each frame with `dt` in seconds.
    * @returns {() => void} Deregister; when the last one goes the stage returns to idle.
@@ -288,6 +319,18 @@ export class Node2D {
    */
   contains(x, y) {
     return false;
+  }
+
+  /**
+   * Map a point from this node's **parent space** (the stage's canvas space for a root node) into
+   * this node's **local space** — the same space {@link Node2D#contains} and `paint` use, with the
+   * origin at the node. So `node.toLocal(stage.pointer(event))` tells you *where inside the figure*
+   * a click landed. Undoes translate + scale (rotation is phase 2, matching {@link Stage#hitTest}).
+   * @param {[number, number]} point - `[x, y]` in parent/canvas space.
+   * @returns {[number, number]} `[x, y]` in this node's local space.
+   */
+  toLocal(point) {
+    return [(point[0] - this.x) / this.scale, (point[1] - this.y) / this.scale];
   }
 
   /**
